@@ -673,4 +673,16 @@ Phase 5 — Polish & Integration
 
 ---
 
+## 11. Discovered Enhancements
+
+Enhancements identified during build that are deferred to a future phase. Do not implement ahead of schedule.
+
+### 11.1 Process Reconstruction Layer
+
+After discovery extracts Lived JTDs and Cognitive JTDs, a future phase will add the ability to arrange those elements into a temporal process flow — with Cognitive Zones, Breakpoints, and sequenced Tasks — giving consultants a structured, ordered view of the process alongside the unordered JTD map.
+
+**Planned for**: Phase 5 (Polish & Integration) — not Phase 3 or Phase 4.
+
+---
+
 *This document is the single source of truth for the ATW build. Any ambiguity in implementation should be resolved by returning to the Vision (Section 1) and the Framework (Section 2). If a decision is not covered here, default to: what makes the consultant smarter and faster, while keeping the framework fidelity intact.*
