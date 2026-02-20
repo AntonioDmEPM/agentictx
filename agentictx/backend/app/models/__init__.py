@@ -6,3 +6,7 @@ from app.models.discovery import (  # noqa: F401
     CognitiveJTD,
     DelegationCluster,
 )
+from app.models.agentic_design import (  # noqa: F401
+    AgentSpecification,
+    AgenticDesignMessage,
+)

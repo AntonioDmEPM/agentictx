@@ -91,3 +91,11 @@ class UseCase(Base):
     delegation_clusters: Mapped[list["DelegationCluster"]] = relationship(  # type: ignore[name-defined]
         "DelegationCluster", back_populates="use_case", cascade="all, delete-orphan"
     )
+
+    # Agentic design relationships (defined in agentic_design.py)
+    agent_specifications: Mapped[list["AgentSpecification"]] = relationship(  # type: ignore[name-defined]
+        "AgentSpecification", back_populates="use_case", cascade="all, delete-orphan"
+    )
+    agentic_design_messages: Mapped[list["AgenticDesignMessage"]] = relationship(  # type: ignore[name-defined]
+        "AgenticDesignMessage", back_populates="use_case", cascade="all, delete-orphan"
+    )
