@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #0a0b0f;
+    --bg-surface: #12141a;
+    --bg-elevated: #1a1d26;
+    --bg-border: #252836;
+
+    --accent-primary: #4f7fff;
+    --accent-warm: #ff6b35;
+    --accent-success: #2dd4a0;
+    --accent-amber: #f5a623;
+
+    --text-primary: #f0f2f8;
+    --text-secondary: #8b90a8;
+    --text-muted: #4a5068;
+
+    --jtd-lived: #f5a623;
+    --jtd-cognitive: #4f7fff;
+    --jtd-cluster: #2dd4a0;
+    --jtd-agent: #9b6fff;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 24px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--bg-border);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+}
+
+@layer components {
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 text-xs font-ui font-medium;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+  }
+
+  .badge-active {
+    @apply badge text-accent-success;
+    border-color: rgba(45, 212, 160, 0.3);
+    background: rgba(45, 212, 160, 0.08);
+  }
+
+  .badge-archived {
+    @apply badge text-text-muted;
+    border-color: rgba(74, 80, 104, 0.3);
+    background: rgba(74, 80, 104, 0.08);
+  }
+
+  .badge-pending {
+    @apply badge text-text-muted;
+    border-color: rgba(74, 80, 104, 0.3);
+    background: rgba(74, 80, 104, 0.08);
+  }
+
+  .badge-discovery {
+    @apply badge text-accent-amber;
+    border-color: rgba(245, 166, 35, 0.3);
+    background: rgba(245, 166, 35, 0.08);
+  }
+
+  .badge-agentic_design {
+    @apply badge text-accent-primary;
+    border-color: rgba(79, 127, 255, 0.3);
+    background: rgba(79, 127, 255, 0.08);
+  }
+
+  .badge-business_case {
+    @apply badge;
+    color: #9b6fff;
+    border-color: rgba(155, 111, 255, 0.3);
+    background: rgba(155, 111, 255, 0.08);
+  }
+
+  .badge-complete {
+    @apply badge text-accent-success;
+    border-color: rgba(45, 212, 160, 0.3);
+    background: rgba(45, 212, 160, 0.08);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-bg-primary bg-accent-primary;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    transition: background 150ms ease;
+  }
+  .btn-primary:hover {
+    background: #6b96ff;
+  }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-secondary;
+    border: 1px solid var(--bg-border);
+    border-radius: 2px;
+    background: transparent;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+  .btn-ghost:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent-warm;
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 2px;
+    background: transparent;
+    transition: border-color 150ms ease, background 150ms ease;
+  }
+  .btn-danger:hover {
+    border-color: var(--accent-warm);
+    background: rgba(255, 107, 53, 0.08);
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full px-3 py-2 text-sm text-text-primary bg-bg-elevated;
+    border: 1px solid var(--bg-border);
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 150ms ease;
+  }
+  .input::placeholder {
+    color: var(--text-muted);
+  }
+  .input:focus {
+    border-color: var(--accent-primary);
+  }
+
+  /* Cards / panels */
+  .panel {
+    @apply bg-bg-surface;
+    border: 1px solid var(--bg-border);
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
