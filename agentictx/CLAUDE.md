@@ -673,15 +673,43 @@ Phase 5 — Polish & Integration
 
 ---
 
-## 11. Discovered Enhancements
+## 11. Process Visualisation Layer (Planned: Phase 3.5, after Phase 4)
 
-Enhancements identified during build that are deferred to a future phase. Do not implement ahead of schedule.
+### 11.1 Purpose
+After Discovery extracts Lived JTDs (tasks) and Cognitive JTDs (reasoning), the consultant reconstructs these elements into a validated process flow before Agentic Design. This visual layer transforms the card collection into an editable process diagram that the consultant can manipulate, validate, and use as the foundation for cluster definition and agent mapping.
 
-### 11.1 Process Reconstruction Layer
+### 11.2 Three-Layer Visual Model
 
-After discovery extracts Lived JTDs and Cognitive JTDs, a future phase will add the ability to arrange those elements into a temporal process flow — with Cognitive Zones, Breakpoints, and sequenced Tasks — giving consultants a structured, ordered view of the process alongside the unordered JTD map.
+**Layer 1 — Process Flow (horizontal timeline)**
+Horizontal swimlane, steps in sequence left to right. Each step is a node connected by arrows. Consultant can add, remove, reorder, rename steps. Branching supported at breakpoints.
 
-**Planned for**: Phase 5 (Polish & Integration) — not Phase 3 or Phase 4.
+**Layer 2 — Cognitive Overlay (beneath each step)**
+Each step carries its cognitive elements stacked below it:
+- Lived JTDs (tasks) in amber
+- Cognitive JTDs (reasoning) in blue
+- Cognitive load intensity shown as colour gradient on step node
+
+**Layer 3 — Cluster Boundaries (drawn by consultant)**
+Consultant draws a boundary around a group of steps. Everything inside becomes a delegation cluster. Agent rectangle spans the steps it owns — matching the visual model in Slide 20 of the framework deck.
+
+### 11.3 Agentic Mapping View
+Once clusters are defined, the view shows each agent as a node with:
+- Input (trigger, format, source)
+- Skills (cognitive activities it performs)
+- Output (format, destination)
+- Data sources and tools as satellite nodes
+- Handoff arrows to other agents
+
+### 11.4 Data Model Additions
+process_steps: id, use_case_id, name, sequence_order, is_breakpoint, cognitive_load_intensity
+process_step_jtd_links: process_step_id, jtd_type (lived|cognitive), jtd_id, sequence_within_step
+cluster_process_steps: cluster_id, process_step_id
+
+### 11.5 Interaction Model
+Agent proposes initial step sequence from extracted tasks. Consultant accepts, reorders, splits, merges steps. Drags task and reasoning cards onto steps. Marks breakpoints. Draws cluster boundaries by selecting step ranges. Names clusters and confirms agent assignments.
+
+### 11.6 Build Order
+Phase 3.5 — built after Phase 4 (Business Case). Until built, clusters flow directly from Discovery into Agentic Design as today. Do not build this now.
 
 ---
 
