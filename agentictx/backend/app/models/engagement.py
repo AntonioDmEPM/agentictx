@@ -99,3 +99,8 @@ class UseCase(Base):
     agentic_design_messages: Mapped[list["AgenticDesignMessage"]] = relationship(  # type: ignore[name-defined]
         "AgenticDesignMessage", back_populates="use_case", cascade="all, delete-orphan"
     )
+
+    # Business case relationship (defined in business_case.py)
+    business_case: Mapped["BusinessCase | None"] = relationship(  # type: ignore[name-defined]
+        "BusinessCase", back_populates="use_case", cascade="all, delete-orphan", uselist=False
+    )

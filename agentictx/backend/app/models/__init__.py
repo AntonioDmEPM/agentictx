@@ -10,3 +10,4 @@ from app.models.agentic_design import (  # noqa: F401
     AgentSpecification,
     AgenticDesignMessage,
 )
+from app.models.business_case import BusinessCase, BusinessCaseScenario  # noqa: F401

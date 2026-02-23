@@ -4,6 +4,8 @@ import { LeftNav } from "@/components/LeftNav";
 import { EngagementList } from "@/modules/engagement/EngagementList";
 import { EngagementDetail } from "@/modules/engagement/EngagementDetail";
 import { DiscoveryModule } from "@/modules/discovery";
+import { AgenticDesignModule } from "@/modules/agentic-design";
+import { BusinessCaseModule } from "@/modules/business-case";
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -41,6 +43,22 @@ export function App() {
         element={
           <Layout>
             <DiscoveryModule />
+          </Layout>
+        }
+      />
+      <Route
+        path="/engagements/:id/use-cases/:useCaseId/agentic-design"
+        element={
+          <Layout>
+            <AgenticDesignModule />
+          </Layout>
+        }
+      />
+      <Route
+        path="/engagements/:id/use-cases/:useCaseId/business-case"
+        element={
+          <Layout>
+            <BusinessCaseModule />
           </Layout>
         }
       />
