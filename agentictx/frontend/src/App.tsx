@@ -5,7 +5,7 @@ import { EngagementList } from "@/modules/engagement/EngagementList";
 import { EngagementDetail } from "@/modules/engagement/EngagementDetail";
 import { DiscoveryModule } from "@/modules/discovery";
 import { AgenticDesignModule } from "@/modules/agentic-design";
-import { BusinessCaseModule } from "@/modules/business-case";
+// BusinessCaseModule import intentionally removed from routing pending requirements rework
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -54,14 +54,7 @@ export function App() {
           </Layout>
         }
       />
-      <Route
-        path="/engagements/:id/use-cases/:useCaseId/business-case"
-        element={
-          <Layout>
-            <BusinessCaseModule />
-          </Layout>
-        }
-      />
+      {/* Business Case route hidden pending requirements rework */}
     </Routes>
   );
 }

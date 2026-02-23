@@ -3,11 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { engagementsApi } from "@/api/engagements";
 
 // Maps stage label → route segment. null = not yet built (disabled).
+// Compliance and Business Case are hidden pending requirements rework.
 const STAGES: { label: string; segment: string | null }[] = [
   { label: "Discovery", segment: "discovery" },
   { label: "Agentic Design", segment: "agentic-design" },
-  { label: "Compliance", segment: null },
-  { label: "Business Case", segment: "business-case" },
 ];
 
 export function TopBar() {
