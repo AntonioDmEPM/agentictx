@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.discovery import (
+    ClusterProcessStep,
     ClusterStatus,
     CognitiveJTD,
     ConversationMessage,
@@ -19,10 +20,13 @@ from app.models.discovery import (
     JTDStatus,
     LivedJTD,
     MessageRole,
+    ProcessStep,
+    ProcessStepJTDLink,
     RawInput,
     RawInputType,
 )
 from app.schemas.discovery import (
+    ClusterProcessStepRead,
     CognitiveJTDRead,
     CognitiveJTDUpdate,
     CognitiveMapRead,
@@ -30,6 +34,12 @@ from app.schemas.discovery import (
     DelegationClusterUpdate,
     LivedJTDRead,
     LivedJTDUpdate,
+    ProcessFlowRead,
+    ProcessStepCreate,
+    ProcessStepJTDLinkCreate,
+    ProcessStepJTDLinkRead,
+    ProcessStepRead,
+    ProcessStepUpdate,
     RawInputRead,
     SuitabilityScores,
     ConversationMessageRead,
@@ -380,3 +390,157 @@ async def get_cognitive_map(
         cognitive_jtds=cognitive,
         delegation_clusters=clusters,
     )
+
+
+# ─── Process Flow ─────────────────────────────────────────────────────────────
+
+async def get_process_flow(
+    db: AsyncSession, use_case_id: uuid.UUID
+) -> ProcessFlowRead:
+    steps_result = await db.execute(
+        select(ProcessStep)
+        .where(ProcessStep.use_case_id == use_case_id)
+        .order_by(ProcessStep.sequence_order.asc())
+    )
+    steps = steps_result.scalars().all()
+    step_ids = [s.id for s in steps]
+
+    jtd_links: list[ProcessStepJTDLink] = []
+    cluster_steps_list: list[ClusterProcessStep] = []
+
+    if step_ids:
+        links_result = await db.execute(
+            select(ProcessStepJTDLink)
+            .where(ProcessStepJTDLink.process_step_id.in_(step_ids))
+            .order_by(ProcessStepJTDLink.sequence_within_step.asc())
+        )
+        jtd_links = list(links_result.scalars().all())
+
+        cs_result = await db.execute(
+            select(ClusterProcessStep)
+            .where(ClusterProcessStep.process_step_id.in_(step_ids))
+        )
+        cluster_steps_list = list(cs_result.scalars().all())
+
+    return ProcessFlowRead(
+        use_case_id=use_case_id,
+        steps=[ProcessStepRead.model_validate(s) for s in steps],
+        jtd_links=[ProcessStepJTDLinkRead.model_validate(l) for l in jtd_links],
+        cluster_steps=[ClusterProcessStepRead.model_validate(c) for c in cluster_steps_list],
+    )
+
+
+async def create_process_step(
+    db: AsyncSession, use_case_id: uuid.UUID, payload: ProcessStepCreate
+) -> ProcessStepRead:
+    step = ProcessStep(
+        use_case_id=use_case_id,
+        name=payload.name,
+        sequence_order=payload.sequence_order,
+        is_breakpoint=payload.is_breakpoint,
+        cognitive_load_intensity=payload.cognitive_load_intensity,
+    )
+    db.add(step)
+    await db.flush()
+    await db.refresh(step)
+    return ProcessStepRead.model_validate(step)
+
+
+async def update_process_step(
+    db: AsyncSession,
+    use_case_id: uuid.UUID,
+    step_id: uuid.UUID,
+    payload: ProcessStepUpdate,
+) -> ProcessStepRead | None:
+    result = await db.execute(
+        select(ProcessStep).where(
+            ProcessStep.id == step_id,
+            ProcessStep.use_case_id == use_case_id,
+        )
+    )
+    step = result.scalar_one_or_none()
+    if step is None:
+        return None
+    for field, value in payload.model_dump(exclude_none=True).items():
+        setattr(step, field, value)
+    await db.flush()
+    await db.refresh(step)
+    return ProcessStepRead.model_validate(step)
+
+
+async def delete_process_step(
+    db: AsyncSession, use_case_id: uuid.UUID, step_id: uuid.UUID
+) -> bool:
+    result = await db.execute(
+        select(ProcessStep).where(
+            ProcessStep.id == step_id,
+            ProcessStep.use_case_id == use_case_id,
+        )
+    )
+    step = result.scalar_one_or_none()
+    if step is None:
+        return False
+    await db.delete(step)
+    return True
+
+
+async def add_jtd_link(
+    db: AsyncSession, step_id: uuid.UUID, payload: ProcessStepJTDLinkCreate
+) -> ProcessStepJTDLinkRead:
+    link = ProcessStepJTDLink(
+        process_step_id=step_id,
+        jtd_type=payload.jtd_type,
+        jtd_id=payload.jtd_id,
+        sequence_within_step=payload.sequence_within_step,
+    )
+    db.add(link)
+    await db.flush()
+    await db.refresh(link)
+    return ProcessStepJTDLinkRead.model_validate(link)
+
+
+async def remove_jtd_link(db: AsyncSession, link_id: uuid.UUID) -> bool:
+    result = await db.execute(
+        select(ProcessStepJTDLink).where(ProcessStepJTDLink.id == link_id)
+    )
+    link = result.scalar_one_or_none()
+    if link is None:
+        return False
+    await db.delete(link)
+    return True
+
+
+async def assign_step_to_cluster(
+    db: AsyncSession, cluster_id: uuid.UUID, step_id: uuid.UUID
+) -> ClusterProcessStepRead:
+    # Upsert — if assignment already exists return it
+    result = await db.execute(
+        select(ClusterProcessStep).where(
+            ClusterProcessStep.cluster_id == cluster_id,
+            ClusterProcessStep.process_step_id == step_id,
+        )
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        return ClusterProcessStepRead.model_validate(existing)
+    cs = ClusterProcessStep(cluster_id=cluster_id, process_step_id=step_id)
+    db.add(cs)
+    await db.flush()
+    await db.refresh(cs)
+    return ClusterProcessStepRead.model_validate(cs)
+
+
+async def remove_step_from_cluster(
+    db: AsyncSession, cluster_id: uuid.UUID, step_id: uuid.UUID
+) -> bool:
+    result = await db.execute(
+        select(ClusterProcessStep).where(
+            ClusterProcessStep.cluster_id == cluster_id,
+            ClusterProcessStep.process_step_id == step_id,
+        )
+    )
+    cs = result.scalar_one_or_none()
+    if cs is None:
+        return False
+    await db.delete(cs)
+    return True

@@ -1,9 +1,26 @@
 import * as client from "./client";
 import type {
   AgenticDesignMap,
+  AgentHandoff,
   AgentSpecification,
   AgentSpecificationUpdate,
 } from "@/types/agentic_design";
+
+interface HandoffCreate {
+  from_agent_id: string;
+  to_agent_id: string;
+  trigger_condition?: string;
+  payload_description?: string;
+  estimated_tokens?: number;
+  handoff_type?: string;
+}
+
+interface HandoffUpdate {
+  trigger_condition?: string;
+  payload_description?: string;
+  estimated_tokens?: number;
+  handoff_type?: string;
+}
 
 const BASE = (ucId: string) => `/use-cases/${ucId}/agentic-design`;
 
@@ -30,6 +47,25 @@ export const agenticDesignApi = {
       `${BASE(ucId)}/${specId}/approve`,
       {}
     ),
+
+  // ─── Agent handoffs ───────────────────────────────────────────────────────
+  createHandoff: (ucId: string, payload: HandoffCreate) =>
+    client.post<AgentHandoff, HandoffCreate>(
+      `${BASE(ucId)}/handoffs`,
+      payload
+    ),
+
+  listHandoffs: (ucId: string) =>
+    client.get<AgentHandoff[]>(`${BASE(ucId)}/handoffs`),
+
+  updateHandoff: (ucId: string, hid: string, payload: HandoffUpdate) =>
+    client.patch<AgentHandoff, HandoffUpdate>(
+      `${BASE(ucId)}/handoffs/${hid}`,
+      payload
+    ),
+
+  deleteHandoff: (ucId: string, hid: string) =>
+    client.del(`${BASE(ucId)}/handoffs/${hid}`),
 
   // ─── ARD document download ────────────────────────────────────────────────
   downloadArd: async (ucId: string): Promise<void> => {

@@ -177,3 +177,77 @@ class DelegationCluster(Base):
     )
 
     use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="delegation_clusters")  # type: ignore[name-defined]
+
+
+# ─── Process Visualisation ────────────────────────────────────────────────────
+
+class ProcessStep(Base):
+    __tablename__ = "process_steps"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    use_case_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("use_cases.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    sequence_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    is_breakpoint: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    cognitive_load_intensity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="process_steps")  # type: ignore[name-defined]
+    jtd_links: Mapped[list["ProcessStepJTDLink"]] = relationship(
+        "ProcessStepJTDLink", back_populates="process_step", cascade="all, delete-orphan"
+    )
+    cluster_steps: Mapped[list["ClusterProcessStep"]] = relationship(
+        "ClusterProcessStep", back_populates="process_step", cascade="all, delete-orphan"
+    )
+
+
+class ProcessStepJTDLink(Base):
+    __tablename__ = "process_step_jtd_links"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    process_step_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("process_steps.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    jtd_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'lived' | 'cognitive'
+    jtd_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    sequence_within_step: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    process_step: Mapped["ProcessStep"] = relationship("ProcessStep", back_populates="jtd_links")
+
+
+class ClusterProcessStep(Base):
+    __tablename__ = "cluster_process_steps"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    cluster_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("delegation_clusters.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    process_step_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("process_steps.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    process_step: Mapped["ProcessStep"] = relationship("ProcessStep", back_populates="cluster_steps")

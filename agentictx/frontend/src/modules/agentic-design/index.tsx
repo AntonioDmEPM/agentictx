@@ -6,6 +6,7 @@ import { discoveryApi } from "@/api/discovery";
 import { useAgenticDesignStore } from "@/store/agenticDesignStore";
 import { useAgenticDesignWebSocket } from "./hooks/useAgenticDesignWebSocket";
 import { SpecPanel } from "./SpecPanel";
+import { AgentArchitectureDiagram } from "./diagram/AgentArchitectureDiagram";
 import type { AgenticDesignMessage } from "@/types/agentic_design";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -16,6 +17,84 @@ function extractTextFromBlocks(content: AgenticDesignMessage["content"]): string
     .filter((b) => b.type === "text")
     .map((b) => b.text ?? "")
     .join("");
+}
+
+// ─── Collapse button ──────────────────────────────────────────────────────────
+
+function CollapseBtn({ onClick, dir }: { onClick: () => void; dir: "left" | "right" }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: "none",
+        border: "none",
+        padding: "2px 6px",
+        cursor: "pointer",
+        color: hovered ? "var(--text-secondary)" : "var(--text-muted)",
+        fontSize: 14,
+        lineHeight: 1,
+        borderRadius: 3,
+      }}
+    >
+      {dir === "left" ? "‹" : "›"}
+    </button>
+  );
+}
+
+// ─── Collapsed strip ──────────────────────────────────────────────────────────
+
+function CollapsedStrip({
+  label,
+  expandDir,
+  onExpand,
+}: {
+  label: string;
+  expandDir: "left" | "right";
+  onExpand: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onClick={onExpand}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: 44,
+        height: "100%",
+        background: hovered ? "var(--bg-elevated)" : "var(--bg-surface)",
+        borderRight: expandDir === "right" ? "1px solid var(--bg-border)" : undefined,
+        borderLeft: expandDir === "left" ? "1px solid var(--bg-border)" : undefined,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        gap: 10,
+        userSelect: "none",
+        transition: "background 0.15s ease",
+      }}
+    >
+      <span
+        style={{
+          writingMode: "vertical-rl",
+          fontSize: 10,
+          fontFamily: "var(--font-ui)",
+          color: "var(--text-muted)",
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          transform: expandDir === "right" ? "rotate(180deg)" : undefined,
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ fontSize: 14, color: "var(--text-muted)" }}>
+        {expandDir === "right" ? "›" : "‹"}
+      </span>
+    </div>
+  );
 }
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
@@ -61,9 +140,10 @@ function MessageBubble({ msg }: { msg: ChatMsg }) {
 
 interface ConversationPanelProps {
   sendMessage: (text: string) => void;
+  onCollapse: () => void;
 }
 
-function ConversationPanel({ sendMessage }: ConversationPanelProps) {
+function ConversationPanel({ sendMessage, onCollapse }: ConversationPanelProps) {
   const { chatMessages, streamingText, isStreaming, addChatMessage } =
     useAgenticDesignStore();
 
@@ -84,11 +164,12 @@ function ConversationPanel({ sendMessage }: ConversationPanelProps) {
 
   return (
     <div className="flex flex-col h-full border-r border-bg-border">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-bg-border shrink-0">
+      {/* Header — fixed 44px height */}
+      <div className="h-11 px-5 border-b border-bg-border shrink-0 flex items-center justify-between">
         <h2 className="text-sm font-medium font-ui uppercase tracking-wider text-text-secondary">
           Design Conversation
         </h2>
+        <CollapseBtn onClick={onCollapse} dir="left" />
       </div>
 
       {/* Message thread */}
@@ -160,7 +241,10 @@ function ConversationPanel({ sendMessage }: ConversationPanelProps) {
 
 export function AgenticDesignModule() {
   const { useCaseId } = useParams<{ id: string; useCaseId: string }>();
-  const { hydrate, reset } = useAgenticDesignStore();
+  const { hydrate, reset, agentSpecs, updateAgentSpec } = useAgenticDesignStore();
+  const [diagramSpecId, setDiagramSpecId] = useState<string | null>(null);
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
 
   // Load existing design map on mount
   const { data: designMap } = useQuery({
@@ -201,6 +285,16 @@ export function AgenticDesignModule() {
     useCaseId: useCaseId!,
   });
 
+  const handleViewDiagram = useCallback((id: string) => {
+    setDiagramSpecId(id);
+    setRightOpen(true);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setDiagramSpecId(null);
+    setRightOpen(true);
+  }, []);
+
   if (!useCaseId) {
     return (
       <div className="flex items-center justify-center h-full text-text-muted text-sm font-ui">
@@ -210,18 +304,69 @@ export function AgenticDesignModule() {
   }
 
   const clusters = discoveryMap?.delegation_clusters ?? [];
+  const diagramSpec = diagramSpecId
+    ? agentSpecs.find((s) => s.id === diagramSpecId) ?? null
+    : null;
+
+  const gridCols = !leftOpen
+    ? "44px 1fr"
+    : !rightOpen
+    ? "1fr 44px"
+    : "2fr 3fr";
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Left panel — Conversation (40%) */}
-      <div className="w-2/5 shrink-0 flex flex-col overflow-hidden">
-        <ConversationPanel sendMessage={sendMessage} />
-      </div>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: gridCols,
+        height: "100%",
+        overflow: "hidden",
+        transition: "grid-template-columns 0.2s ease",
+      }}
+    >
+      {/* Left cell — Conversation or collapsed strip */}
+      {leftOpen ? (
+        <div style={{ minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <ConversationPanel
+            sendMessage={sendMessage}
+            onCollapse={() => setLeftOpen(false)}
+          />
+        </div>
+      ) : (
+        <CollapsedStrip
+          label="Conversation"
+          expandDir="right"
+          onExpand={() => setLeftOpen(true)}
+        />
+      )}
 
-      {/* Right panel — Spec Panel (60%) */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <SpecPanel useCaseId={useCaseId} clusters={clusters} />
-      </div>
+      {/* Right cell — Spec Panel / Diagram or collapsed strip */}
+      {rightOpen ? (
+        <div style={{ minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          {diagramSpec ? (
+            <AgentArchitectureDiagram
+              spec={diagramSpec}
+              useCaseId={useCaseId}
+              onBack={handleBack}
+              onSpecUpdated={updateAgentSpec}
+              onCollapse={() => setRightOpen(false)}
+            />
+          ) : (
+            <SpecPanel
+              useCaseId={useCaseId}
+              clusters={clusters}
+              onViewDiagram={handleViewDiagram}
+              onCollapse={() => setRightOpen(false)}
+            />
+          )}
+        </div>
+      ) : (
+        <CollapsedStrip
+          label={diagramSpec ? "Diagram" : "Specs"}
+          expandDir="left"
+          onExpand={() => setRightOpen(true)}
+        />
+      )}
     </div>
   );
 }

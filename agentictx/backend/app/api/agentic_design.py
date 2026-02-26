@@ -20,6 +20,9 @@ from app.modules.agentic_design import service
 from app.modules.discovery import service as discovery_service
 from app.schemas.agentic_design import (
     AgenticDesignMap,
+    AgentHandoffCreate,
+    AgentHandoffRead,
+    AgentHandoffUpdate,
     AgentSpecificationRead,
     AgentSpecificationUpdate,
 )
@@ -63,7 +66,68 @@ async def generate_ard(
     )
 
 
-# ─── Agent Specification CRUD ─────────────────────────────────────────────────
+# ─── Agent Handoffs — must come before /{spec_id} routes ─────────────────────
+
+@router.post(
+    "/{uc_id}/agentic-design/handoffs",
+    response_model=ResponseEnvelope[AgentHandoffRead],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_handoff(
+    uc_id: uuid.UUID,
+    payload: AgentHandoffCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    handoff = await service.create_handoff(db, uc_id, payload)
+    await db.commit()
+    return ResponseEnvelope(data=handoff)
+
+
+@router.get(
+    "/{uc_id}/agentic-design/handoffs",
+    response_model=ResponseEnvelope[list[AgentHandoffRead]],
+)
+async def list_handoffs(
+    uc_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    handoffs = await service.list_handoffs(db, uc_id)
+    return ResponseEnvelope(data=handoffs)
+
+
+@router.patch(
+    "/{uc_id}/agentic-design/handoffs/{hid}",
+    response_model=ResponseEnvelope[AgentHandoffRead],
+)
+async def update_handoff(
+    uc_id: uuid.UUID,
+    hid: uuid.UUID,
+    payload: AgentHandoffUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    handoff = await service.update_handoff(db, uc_id, hid, payload)
+    if handoff is None:
+        raise HTTPException(status_code=404, detail="Handoff not found")
+    await db.commit()
+    return ResponseEnvelope(data=handoff)
+
+
+@router.delete(
+    "/{uc_id}/agentic-design/handoffs/{hid}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_handoff(
+    uc_id: uuid.UUID,
+    hid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    deleted = await service.delete_handoff(db, uc_id, hid)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Handoff not found")
+    await db.commit()
+
+
+# ─── Agent Specification CRUD — /{spec_id} routes after all literal paths ─────
 
 @router.get(
     "/{uc_id}/agentic-design/{spec_id}",
@@ -229,6 +293,14 @@ async def _handle_design_ws_session(
                         hitl_design=spec_data.get("hitl_design", {}),
                         compliance=spec_data.get("compliance", {}),
                         open_questions=spec_data.get("open_questions", []),
+                        # Phase 5a: architecture diagram fields
+                        model=spec_data.get("model"),
+                        maturity_score=spec_data.get("maturity_score"),
+                        prompt_requirements=spec_data.get("prompt_requirements", {}),
+                        input_channels=spec_data.get("input_channels", []),
+                        tool_stack=spec_data.get("tool_stack", []),
+                        output_channels=spec_data.get("output_channels", []),
+                        assumptions=spec_data.get("assumptions", []),
                     )
                     await db.commit()
                     await websocket.send_text(

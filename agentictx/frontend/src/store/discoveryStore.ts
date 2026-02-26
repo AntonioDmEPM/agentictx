@@ -4,6 +4,7 @@ import type {
   CognitiveJTD,
   DelegationCluster,
   LivedJTD,
+  ProcessFlow,
 } from "@/types/discovery";
 
 interface DiscoveryState {
@@ -16,6 +17,9 @@ interface DiscoveryState {
   livedJTDs: LivedJTD[];
   cognitiveJTDs: CognitiveJTD[];
   delegationClusters: DelegationCluster[];
+
+  // Process visualisation
+  processFlow: ProcessFlow | null;
 
   // Actions — conversation
   addChatMessage: (msg: ChatMessage) => void;
@@ -36,6 +40,9 @@ interface DiscoveryState {
   updateDelegationCluster: (cluster: DelegationCluster) => void;
   removeDelegationCluster: (id: string) => void;
 
+  // Process flow
+  setProcessFlow: (flow: ProcessFlow | null) => void;
+
   // Hydrate from full map API response
   hydrate: (data: {
     livedJTDs: LivedJTD[];
@@ -55,6 +62,7 @@ const initialState = {
   livedJTDs: [],
   cognitiveJTDs: [],
   delegationClusters: [],
+  processFlow: null as ProcessFlow | null,
 };
 
 export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
@@ -124,6 +132,10 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
     set((s) => ({
       delegationClusters: s.delegationClusters.filter((c) => c.id !== id),
     })),
+
+  // ── Process Flow ──────────────────────────────────────────────────────────
+
+  setProcessFlow: (flow) => set({ processFlow: flow }),
 
   // ── Hydrate ───────────────────────────────────────────────────────────────
 

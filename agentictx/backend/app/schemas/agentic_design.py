@@ -16,6 +16,9 @@ class AgentSpecificationRead(BaseModel):
     name: str
     purpose: str | None
     autonomy_level: str | None
+    # Phase 5a fields
+    model: str | None
+    maturity_score: int | None
     activities: list[str]
     supervised_activities: list[dict[str, Any]]
     out_of_scope: list[str]
@@ -27,6 +30,14 @@ class AgentSpecificationRead(BaseModel):
     hitl_design: dict[str, Any]
     compliance: dict[str, Any]
     open_questions: list[str]
+    # Phase 5a: diagram structured fields
+    prompt_requirements: dict[str, Any]
+    input_channels: list[dict[str, Any]]
+    tool_stack: list[dict[str, Any]]
+    output_channels: list[dict[str, Any]]
+    assumptions: list[dict[str, Any]]
+    # Phase 5b: persisted node positions
+    node_positions: dict[str, Any]
     status: AgentSpecStatus
     created_at: datetime
     updated_at: datetime
@@ -38,6 +49,9 @@ class AgentSpecificationUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     purpose: str | None = None
     autonomy_level: AutonomyLevel | None = None
+    # Phase 5a fields
+    model: str | None = None
+    maturity_score: int | None = None
     activities: list[str] | None = None
     supervised_activities: list[dict[str, Any]] | None = None
     out_of_scope: list[str] | None = None
@@ -49,7 +63,48 @@ class AgentSpecificationUpdate(BaseModel):
     hitl_design: dict[str, Any] | None = None
     compliance: dict[str, Any] | None = None
     open_questions: list[str] | None = None
+    # Phase 5a: diagram structured fields
+    prompt_requirements: dict[str, Any] | None = None
+    input_channels: list[dict[str, Any]] | None = None
+    tool_stack: list[dict[str, Any]] | None = None
+    output_channels: list[dict[str, Any]] | None = None
+    assumptions: list[dict[str, Any]] | None = None
+    # Phase 5b: persisted node positions
+    node_positions: dict[str, Any] | None = None
     status: AgentSpecStatus | None = None
+
+
+# ─── Agent Handoff ────────────────────────────────────────────────────────────
+
+class AgentHandoffCreate(BaseModel):
+    from_agent_id: uuid.UUID
+    to_agent_id: uuid.UUID
+    trigger_condition: str | None = None
+    payload_description: str | None = None
+    estimated_tokens: int = 0
+    handoff_type: str = "sequential"
+
+
+class AgentHandoffUpdate(BaseModel):
+    trigger_condition: str | None = None
+    payload_description: str | None = None
+    estimated_tokens: int | None = None
+    handoff_type: str | None = None
+
+
+class AgentHandoffRead(BaseModel):
+    id: uuid.UUID
+    use_case_id: uuid.UUID
+    from_agent_id: uuid.UUID
+    to_agent_id: uuid.UUID
+    trigger_condition: str | None
+    payload_description: str | None
+    estimated_tokens: int
+    handoff_type: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 # ─── Agentic Design Message ───────────────────────────────────────────────────
@@ -80,3 +135,4 @@ class AgenticDesignMap(BaseModel):
     agent_specifications: list[AgentSpecificationRead]
     messages: list[AgenticDesignMessageRead]
     cross_agent_opportunities: list[CrossAgentOpportunity]
+    handoffs: list[AgentHandoffRead]

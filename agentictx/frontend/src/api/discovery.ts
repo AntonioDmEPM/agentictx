@@ -1,5 +1,6 @@
 import * as client from "./client";
 import type {
+  ClusterProcessStep,
   CognitiveJTDUpdate,
   CognitiveMap,
   DelegationCluster,
@@ -7,6 +8,12 @@ import type {
   LivedJTD,
   LivedJTDUpdate,
   CognitiveJTD,
+  ProcessFlow,
+  ProcessStep,
+  ProcessStepCreate,
+  ProcessStepJTDLink,
+  ProcessStepJTDLinkCreate,
+  ProcessStepUpdate,
   RawInput,
 } from "@/types/discovery";
 
@@ -76,6 +83,45 @@ export const discoveryApi = {
     client.post<DelegationCluster, Record<string, never>>(
       `${BASE(ucId)}/clusters/${clusterId}/score`,
       {}
+    ),
+
+  // ─── Process Flow ─────────────────────────────────────────────────────────
+  getProcessFlow: (ucId: string) =>
+    client.get<ProcessFlow>(`${BASE(ucId)}/process-flow`),
+
+  createStep: (ucId: string, payload: ProcessStepCreate) =>
+    client.post<ProcessStep, ProcessStepCreate>(
+      `${BASE(ucId)}/process-flow/steps`,
+      payload
+    ),
+
+  updateStep: (ucId: string, stepId: string, payload: ProcessStepUpdate) =>
+    client.patch<ProcessStep, ProcessStepUpdate>(
+      `${BASE(ucId)}/process-flow/steps/${stepId}`,
+      payload
+    ),
+
+  deleteStep: (ucId: string, stepId: string) =>
+    client.del(`${BASE(ucId)}/process-flow/steps/${stepId}`),
+
+  addJTDLink: (ucId: string, stepId: string, payload: ProcessStepJTDLinkCreate) =>
+    client.post<ProcessStepJTDLink, ProcessStepJTDLinkCreate>(
+      `${BASE(ucId)}/process-flow/steps/${stepId}/jtd-links`,
+      payload
+    ),
+
+  removeJTDLink: (ucId: string, stepId: string, linkId: string) =>
+    client.del(`${BASE(ucId)}/process-flow/steps/${stepId}/jtd-links/${linkId}`),
+
+  assignStepToCluster: (ucId: string, clusterId: string, stepId: string) =>
+    client.post<ClusterProcessStep, Record<string, never>>(
+      `${BASE(ucId)}/process-flow/clusters/${clusterId}/steps/${stepId}`,
+      {}
+    ),
+
+  removeStepFromCluster: (ucId: string, clusterId: string, stepId: string) =>
+    client.del(
+      `${BASE(ucId)}/process-flow/clusters/${clusterId}/steps/${stepId}`
     ),
 };
 

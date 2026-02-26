@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -44,6 +44,10 @@ class AgentSpecification(Base):
     purpose: Mapped[str | None] = mapped_column(Text, nullable=True)
     autonomy_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
+    # Phase 5a: LLM model identifier + maturity score
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    maturity_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     # Fully delegated activities (list of strings)
     activities: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     # Supervised activities: [{activity, hitl_trigger, human_action}]
@@ -70,6 +74,23 @@ class AgentSpecification(Base):
     # Open questions and blockers (list of strings)
     open_questions: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
 
+    # Phase 5a: structured diagram fields
+    # {system_prompt: {...}, dynamic_context: [...], few_shot_examples: {...}, guardrails: [...]}
+    prompt_requirements: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    # [{name, type, icon, estimated_tokens_per_call, description}]
+    input_channels: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    # [{name, node_prefix, type, status, build_effort, input_tokens_per_call,
+    #   output_tokens_per_call, output_cache_hit_pct, used_by_agents,
+    #   backward_impact, connected_systems}]
+    tool_stack: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    # [{type, name, destination, format, estimated_tokens, latency_requirement_ms}]
+    output_channels: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    # [{id, description, linked_to, risk_level, owner, resolution_status}]
+    assumptions: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+
+    # Phase 5b: persisted node positions — {"node-id": {"x": float, "y": float}}
+    node_positions: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
     status: Mapped[AgentSpecStatus] = mapped_column(
         String(50), default=AgentSpecStatus.draft, nullable=False
     )
@@ -84,6 +105,67 @@ class AgentSpecification(Base):
     )
 
     use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="agent_specifications")  # type: ignore[name-defined]
+    handoffs_from: Mapped[list["AgentHandoff"]] = relationship(
+        "AgentHandoff",
+        foreign_keys="AgentHandoff.from_agent_id",
+        back_populates="from_agent",
+        cascade="all, delete-orphan",
+    )
+    handoffs_to: Mapped[list["AgentHandoff"]] = relationship(
+        "AgentHandoff",
+        foreign_keys="AgentHandoff.to_agent_id",
+        back_populates="to_agent",
+        cascade="all, delete-orphan",
+    )
+
+
+class AgentHandoff(Base):
+    __tablename__ = "agent_handoffs"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    use_case_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("use_cases.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    from_agent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("agent_specifications.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    to_agent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("agent_specifications.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    trigger_condition: Mapped[str | None] = mapped_column(Text, nullable=True)
+    payload_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    estimated_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    handoff_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="sequential"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    from_agent: Mapped[AgentSpecification] = relationship(
+        "AgentSpecification",
+        foreign_keys=[from_agent_id],
+        back_populates="handoffs_from",
+    )
+    to_agent: Mapped[AgentSpecification] = relationship(
+        "AgentSpecification",
+        foreign_keys=[to_agent_id],
+        back_populates="handoffs_to",
+    )
 
 
 class AgenticDesignMessage(Base):

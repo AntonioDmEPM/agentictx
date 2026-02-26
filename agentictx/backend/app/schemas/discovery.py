@@ -144,3 +144,63 @@ class SuitabilityScores(BaseModel):
     exception_rate: int = Field(..., ge=0, le=3)
     turn_taking_complexity: int = Field(..., ge=0, le=3)
     latency_constraints: int = Field(..., ge=0, le=3)
+
+
+# ─── Process Visualisation ────────────────────────────────────────────────────
+
+class ProcessStepCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    sequence_order: int = Field(..., ge=0)
+    is_breakpoint: bool = False
+    cognitive_load_intensity: int | None = Field(None, ge=0, le=3)
+
+
+class ProcessStepUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=255)
+    sequence_order: int | None = Field(None, ge=0)
+    is_breakpoint: bool | None = None
+    cognitive_load_intensity: int | None = Field(None, ge=0, le=3)
+
+
+class ProcessStepRead(BaseModel):
+    id: uuid.UUID
+    use_case_id: uuid.UUID
+    name: str
+    sequence_order: int
+    is_breakpoint: bool
+    cognitive_load_intensity: int | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ProcessStepJTDLinkCreate(BaseModel):
+    jtd_type: str = Field(..., pattern="^(lived|cognitive)$")
+    jtd_id: uuid.UUID
+    sequence_within_step: int = Field(..., ge=0)
+
+
+class ProcessStepJTDLinkRead(BaseModel):
+    id: uuid.UUID
+    process_step_id: uuid.UUID
+    jtd_type: str
+    jtd_id: uuid.UUID
+    sequence_within_step: int
+
+    model_config = {"from_attributes": True}
+
+
+class ClusterProcessStepRead(BaseModel):
+    id: uuid.UUID
+    cluster_id: uuid.UUID
+    process_step_id: uuid.UUID
+
+    model_config = {"from_attributes": True}
+
+
+class ProcessFlowRead(BaseModel):
+    use_case_id: uuid.UUID
+    steps: list[ProcessStepRead]
+    jtd_links: list[ProcessStepJTDLinkRead]
+    cluster_steps: list[ClusterProcessStepRead]

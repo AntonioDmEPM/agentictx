@@ -156,6 +156,234 @@ AGENTIC_DESIGN_TOOLS: list[dict[str, Any]] = [
                     "items": {"type": "string"},
                     "description": "Unresolved questions, data gaps, or blockers",
                 },
+                # ── Phase 5a: Architecture diagram fields ──────────────────
+                "model": {
+                    "type": "string",
+                    "description": (
+                        "LLM model identifier. Default: 'claude-sonnet-4-6'. "
+                        "Use 'claude-opus-4-6' only for very high-complexity reasoning tasks. "
+                        "Use 'claude-haiku-4-5-20251001' for high-volume, low-complexity tasks."
+                    ),
+                },
+                "maturity_score": {
+                    "type": "integer",
+                    "description": (
+                        "Specification completeness 0–100. Self-assess based on: "
+                        "all activities defined (+20), integrations mapped (+20), "
+                        "input/output channels specified (+20), compliance assessed (+20), "
+                        "open questions < 3 (+20). Deduct for each gap."
+                    ),
+                },
+                "prompt_requirements": {
+                    "type": "object",
+                    "properties": {
+                        "system_prompt": {
+                            "type": "object",
+                            "properties": {
+                                "description": {"type": "string"},
+                                "estimated_tokens": {"type": "integer"},
+                                "cache_hit_pct": {"type": "integer"},
+                                "engineering_effort": {"type": "string"},
+                            },
+                            "required": ["description", "estimated_tokens", "cache_hit_pct"],
+                        },
+                        "dynamic_context": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "source": {"type": "string"},
+                                    "estimated_tokens_per_call": {"type": "integer"},
+                                    "cache_hit_pct": {"type": "integer"},
+                                    "fetch_frequency": {"type": "string"},
+                                },
+                                "required": ["name", "source", "estimated_tokens_per_call", "cache_hit_pct"],
+                            },
+                        },
+                        "few_shot_examples": {
+                            "type": "object",
+                            "properties": {
+                                "description": {"type": "string"},
+                                "estimated_tokens": {"type": "integer"},
+                                "cache_hit_pct": {"type": "integer"},
+                                "update_frequency": {"type": "string"},
+                            },
+                            "required": ["description", "estimated_tokens", "cache_hit_pct"],
+                        },
+                        "guardrails": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "description": {"type": "string"},
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["safety", "compliance", "scope"],
+                                    },
+                                    "estimated_tokens": {"type": "integer"},
+                                    "cache_hit_pct": {"type": "integer"},
+                                },
+                                "required": ["description", "type", "estimated_tokens", "cache_hit_pct"],
+                            },
+                        },
+                    },
+                    "description": (
+                        "Prompt architecture. system_prompt: the static instruction layer (~300–800t, ~95% cached). "
+                        "dynamic_context: data fetched per call from integrations (CRM record, KB results — variable, low cache). "
+                        "few_shot_examples: example input/output pairs that stay in prompt (~200–500t, ~90% cached). "
+                        "guardrails: safety/compliance/scope constraints appended to prompt (~50–200t each, ~95% cached). "
+                        "Token estimates: use 1 token ≈ 4 chars of English text as a rough guide."
+                    ),
+                },
+                "input_channels": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "type": {
+                                "type": "string",
+                                "enum": ["voice", "form", "system_event", "agent_handoff"],
+                            },
+                            "estimated_tokens_per_call": {"type": "integer"},
+                            "description": {"type": "string"},
+                        },
+                        "required": ["name", "type", "estimated_tokens_per_call"],
+                    },
+                    "description": (
+                        "Distinct input sources. One entry per channel. "
+                        "voice: phone/audio (~600–1200t transcribed). "
+                        "form: structured web/UI submission (~200–600t). "
+                        "system_event: automated trigger from a backend system (~100–400t). "
+                        "agent_handoff: structured JSON payload from upstream agent (~300–800t). "
+                        "No caching on input channels — content is variable."
+                    ),
+                },
+                "tool_stack": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "node_prefix": {
+                                "type": "string",
+                                "enum": ["T", "KB"],
+                                "description": "T = Tool/MCP Server (active logic). KB = Knowledge Base (retrieval).",
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": ["mcp_server", "knowledge_base"],
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": ["existing", "new", "pending", "blocked"],
+                                "description": "existing = already built, zero marginal cost. new = must be built. pending = not yet confirmed. blocked = dependency unavailable.",
+                            },
+                            "build_effort": {
+                                "type": "string",
+                                "description": "Estimated build effort for new tools, e.g. '1w', '2w', '3d'",
+                            },
+                            "input_tokens_per_call": {
+                                "type": "integer",
+                                "description": "Tokens sent TO the tool (query + parameters)",
+                            },
+                            "output_tokens_per_call": {
+                                "type": "integer",
+                                "description": "Tokens returned FROM the tool (data payload, retrieved content)",
+                            },
+                            "output_cache_hit_pct": {
+                                "type": "integer",
+                                "description": "% of output tokens likely served from cache. KB results ~20-40%. Write APIs ~0%.",
+                            },
+                            "connected_systems": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {"type": "string"},
+                                        "node_prefix": {
+                                            "type": "string",
+                                            "enum": ["S", "KB"],
+                                        },
+                                        "type": {"type": "string"},
+                                        "status": {
+                                            "type": "string",
+                                            "enum": ["existing", "new", "pending", "blocked"],
+                                        },
+                                    },
+                                    "required": ["name", "node_prefix", "type", "status"],
+                                },
+                                "description": "Backend systems/KBs this tool reads from or writes to. The agent never connects to systems directly — always through this tool layer.",
+                            },
+                        },
+                        "required": ["name", "node_prefix", "type", "status", "input_tokens_per_call", "output_tokens_per_call", "output_cache_hit_pct"],
+                    },
+                    "description": (
+                        "Integration layer. Every data source and system the agent needs access to "
+                        "must be represented as a Tool (T:) or Knowledge Base (KB) node, "
+                        "with the actual system behind it in connected_systems. "
+                        "Never list a raw system — always wrap it in a tool abstraction."
+                    ),
+                },
+                "output_channels": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["system_write", "text_response", "agent_handoff", "audit_log"],
+                            },
+                            "name": {"type": "string"},
+                            "destination": {"type": "string"},
+                            "format": {"type": "string"},
+                            "estimated_tokens": {
+                                "type": "integer",
+                                "description": "Token cost for text outputs. 0 for system_write and audit_log.",
+                            },
+                            "latency_requirement_ms": {
+                                "type": "integer",
+                                "description": "Maximum acceptable latency in ms. Null if no hard requirement.",
+                            },
+                        },
+                        "required": ["type", "name", "estimated_tokens"],
+                    },
+                    "description": (
+                        "Distinct outputs. system_write: writes a record to a backend system (0t, no latency req). "
+                        "text_response: natural language to a human or voice channel (~100–400t, latency-sensitive if voice). "
+                        "agent_handoff: structured JSON payload to a downstream agent (~200–600t). "
+                        "audit_log: compliance/traceability entry (~50–150t)."
+                    ),
+                },
+                "assumptions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "description": {"type": "string"},
+                            "linked_to": {"type": "string"},
+                            "risk_level": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high"],
+                            },
+                            "owner": {"type": "string"},
+                            "resolution_status": {
+                                "type": "string",
+                                "enum": ["open", "resolved", "escalated"],
+                            },
+                        },
+                        "required": ["id", "description", "risk_level", "resolution_status"],
+                    },
+                    "description": (
+                        "Assumptions underlying this specification. "
+                        "Capture every dependency on an API existing, data being available, "
+                        "or a system behaviour not yet confirmed. "
+                        "Each tool with status 'new' or 'pending' should have at least one assumption. "
+                        "These become the implementation risk register."
+                    ),
+                },
             },
             "required": ["name", "purpose", "autonomy_level"],
         },

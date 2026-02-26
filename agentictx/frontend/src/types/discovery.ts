@@ -168,6 +168,60 @@ export type WSServerEvent =
   | WSMessageComplete
   | WSError;
 
+// ─── Process Visualisation ────────────────────────────────────────────────────
+
+export interface ProcessStep {
+  id: string;
+  use_case_id: string;
+  name: string;
+  sequence_order: number;
+  is_breakpoint: boolean;
+  cognitive_load_intensity: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProcessStepCreate {
+  name: string;
+  sequence_order: number;
+  is_breakpoint?: boolean;
+  cognitive_load_intensity?: number | null;
+}
+
+export interface ProcessStepUpdate {
+  name?: string;
+  sequence_order?: number;
+  is_breakpoint?: boolean;
+  cognitive_load_intensity?: number | null;
+}
+
+export interface ProcessStepJTDLink {
+  id: string;
+  process_step_id: string;
+  jtd_type: "lived" | "cognitive";
+  jtd_id: string;
+  sequence_within_step: number;
+}
+
+export interface ProcessStepJTDLinkCreate {
+  jtd_type: "lived" | "cognitive";
+  jtd_id: string;
+  sequence_within_step: number;
+}
+
+export interface ClusterProcessStep {
+  id: string;
+  cluster_id: string;
+  process_step_id: string;
+}
+
+export interface ProcessFlow {
+  use_case_id: string;
+  steps: ProcessStep[];
+  jtd_links: ProcessStepJTDLink[];
+  cluster_steps: ClusterProcessStep[];
+}
+
 // ─── UI-only types ─────────────────────────────────────────────────────────────
 
 /** A chat message shown in the input panel. */

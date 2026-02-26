@@ -22,6 +22,12 @@
     --jtd-cognitive: #4f7fff;
     --jtd-cluster: #2dd4a0;
     --jtd-agent: #9b6fff;
+
+    /* Tool build status (Phase 5a — Agent Architecture Diagram) */
+    --tool-existing: #6b7280;
+    --tool-new: #2dd4a0;
+    --tool-pending: #f5a623;
+    --tool-blocked: #ff6b35;
   }
 
   * {
@@ -174,6 +180,27 @@
     border: 1px solid var(--bg-border);
     border-radius: 2px;
   }
+}
+
+/* ── React Flow dark-theme overrides ──────────────────────────────────────── */
+/* Remove the default white node background/border so custom node styles show */
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+}
+
+.react-flow__node.selected > * {
+  outline: none !important;
+}
+
+/* Ensure the viewport pane fills its container */
+.react-flow__renderer,
+.react-flow__viewport {
+  width: 100%;
+  height: 100%;
 }
 
 @layer utilities {

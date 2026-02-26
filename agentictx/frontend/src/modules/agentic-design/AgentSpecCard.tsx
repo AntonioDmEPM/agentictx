@@ -162,6 +162,7 @@ interface AgentSpecCardProps {
   spec: AgentSpecification;
   onApprove: () => void;
   onDownloadArd: () => void;
+  onViewDiagram?: () => void;
   isApproving?: boolean;
 }
 
@@ -169,6 +170,7 @@ export function AgentSpecCard({
   spec,
   onApprove,
   onDownloadArd,
+  onViewDiagram,
   isApproving = false,
 }: AgentSpecCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -250,6 +252,18 @@ export function AgentSpecCard({
           >
             Download ARD
           </button>
+          {onViewDiagram && (
+            <button
+              onClick={onViewDiagram}
+              className="text-xs font-ui px-2 py-0.5 rounded-sm border transition-colors ml-auto"
+              style={{
+                color: "var(--accent-primary)",
+                borderColor: "var(--accent-primary)",
+              }}
+            >
+              View Diagram →
+            </button>
+          )}
         </div>
       </div>
     </div>

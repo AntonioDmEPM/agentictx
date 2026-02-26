@@ -16,6 +16,7 @@ from app.models.discovery import MessageRole, RawInputType
 from app.modules.discovery import service
 from app.schemas.common import ResponseEnvelope
 from app.schemas.discovery import (
+    ClusterProcessStepRead,
     CognitiveJTDRead,
     CognitiveJTDUpdate,
     CognitiveMapRead,
@@ -23,6 +24,12 @@ from app.schemas.discovery import (
     DelegationClusterUpdate,
     LivedJTDRead,
     LivedJTDUpdate,
+    ProcessFlowRead,
+    ProcessStepCreate,
+    ProcessStepJTDLinkCreate,
+    ProcessStepJTDLinkRead,
+    ProcessStepRead,
+    ProcessStepUpdate,
     RawInputRead,
 )
 from app.services.file_storage import extract_text, is_image_mime, read_as_base64, save_upload
@@ -210,6 +217,129 @@ async def score_delegation_cluster(
 
     updated = await service.apply_suitability_scores(db, uc_id, cluster_id, scores)
     return ResponseEnvelope(data=updated)
+
+
+# ─── Process Flow ────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{uc_id}/process-flow",
+    response_model=ResponseEnvelope[ProcessFlowRead],
+)
+async def get_process_flow(uc_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    """Return the full process flow (steps, JTD links, cluster assignments) for a use case."""
+    flow = await service.get_process_flow(db, uc_id)
+    return ResponseEnvelope(data=flow)
+
+
+@router.post(
+    "/{uc_id}/process-flow/steps",
+    response_model=ResponseEnvelope[ProcessStepRead],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_process_step(
+    uc_id: uuid.UUID,
+    payload: ProcessStepCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    step = await service.create_process_step(db, uc_id, payload)
+    await db.commit()
+    return ResponseEnvelope(data=step)
+
+
+@router.patch(
+    "/{uc_id}/process-flow/steps/{step_id}",
+    response_model=ResponseEnvelope[ProcessStepRead],
+)
+async def update_process_step(
+    uc_id: uuid.UUID,
+    step_id: uuid.UUID,
+    payload: ProcessStepUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    step = await service.update_process_step(db, uc_id, step_id, payload)
+    if step is None:
+        raise HTTPException(status_code=404, detail="Process step not found")
+    await db.commit()
+    return ResponseEnvelope(data=step)
+
+
+@router.delete(
+    "/{uc_id}/process-flow/steps/{step_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_process_step(
+    uc_id: uuid.UUID,
+    step_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    deleted = await service.delete_process_step(db, uc_id, step_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Process step not found")
+    await db.commit()
+
+
+@router.post(
+    "/{uc_id}/process-flow/steps/{step_id}/jtd-links",
+    response_model=ResponseEnvelope[ProcessStepJTDLinkRead],
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_jtd_link(
+    uc_id: uuid.UUID,
+    step_id: uuid.UUID,
+    payload: ProcessStepJTDLinkCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    link = await service.add_jtd_link(db, step_id, payload)
+    await db.commit()
+    return ResponseEnvelope(data=link)
+
+
+@router.delete(
+    "/{uc_id}/process-flow/steps/{step_id}/jtd-links/{link_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_jtd_link(
+    uc_id: uuid.UUID,
+    step_id: uuid.UUID,
+    link_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    deleted = await service.remove_jtd_link(db, link_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="JTD link not found")
+    await db.commit()
+
+
+@router.post(
+    "/{uc_id}/process-flow/clusters/{cluster_id}/steps/{step_id}",
+    response_model=ResponseEnvelope[ClusterProcessStepRead],
+    status_code=status.HTTP_201_CREATED,
+)
+async def assign_step_to_cluster(
+    uc_id: uuid.UUID,
+    cluster_id: uuid.UUID,
+    step_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    cs = await service.assign_step_to_cluster(db, cluster_id, step_id)
+    await db.commit()
+    return ResponseEnvelope(data=cs)
+
+
+@router.delete(
+    "/{uc_id}/process-flow/clusters/{cluster_id}/steps/{step_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_step_from_cluster(
+    uc_id: uuid.UUID,
+    cluster_id: uuid.UUID,
+    step_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    deleted = await service.remove_step_from_cluster(db, cluster_id, step_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Cluster step assignment not found")
+    await db.commit()
 
 
 # ─── WebSocket ────────────────────────────────────────────────────────────────

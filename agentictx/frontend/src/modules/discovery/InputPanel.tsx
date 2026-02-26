@@ -7,6 +7,32 @@ interface InputPanelProps {
   useCaseId: string;
   sendMessage: (text: string) => void;
   notifyFileProcessed: (rawInputId: string) => void;
+  onCollapse: () => void;
+}
+
+// ─── Collapse button ──────────────────────────────────────────────────────────
+
+function CollapseBtn({ onClick, dir }: { onClick: () => void; dir: "left" | "right" }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: "none",
+        border: "none",
+        padding: "2px 6px",
+        cursor: "pointer",
+        color: hovered ? "var(--text-secondary)" : "var(--text-muted)",
+        fontSize: 14,
+        lineHeight: 1,
+        borderRadius: 3,
+      }}
+    >
+      {dir === "left" ? "‹" : "›"}
+    </button>
+  );
 }
 
 // ─── Chat message bubble ──────────────────────────────────────────────────────
@@ -121,7 +147,7 @@ function FileDropZone({
 
 // ─── Main InputPanel ──────────────────────────────────────────────────────────
 
-export function InputPanel({ useCaseId, sendMessage, notifyFileProcessed }: InputPanelProps) {
+export function InputPanel({ useCaseId, sendMessage, notifyFileProcessed, onCollapse }: InputPanelProps) {
   const { chatMessages, streamingText, isStreaming, addChatMessage } =
     useDiscoveryStore();
 
@@ -155,11 +181,12 @@ export function InputPanel({ useCaseId, sendMessage, notifyFileProcessed }: Inpu
 
   return (
     <div className="flex flex-col h-full border-r border-bg-border">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-bg-border shrink-0">
+      {/* Header — fixed 44px height */}
+      <div className="h-11 px-5 border-b border-bg-border shrink-0 flex items-center justify-between">
         <h2 className="text-sm font-medium font-ui uppercase tracking-wider text-text-secondary">
           Discovery Conversation
         </h2>
+        <CollapseBtn onClick={onCollapse} dir="left" />
       </div>
 
       {/* Message thread */}

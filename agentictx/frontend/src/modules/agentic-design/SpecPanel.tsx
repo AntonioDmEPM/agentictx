@@ -4,12 +4,41 @@ import { useAgenticDesignStore } from "@/store/agenticDesignStore";
 import { AgentSpecCard, OpportunityCard } from "./AgentSpecCard";
 import type { DelegationCluster } from "@/types/discovery";
 
+// ─── Collapse button ──────────────────────────────────────────────────────────
+
+function CollapseBtn({ onClick, dir }: { onClick: () => void; dir: "left" | "right" }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: "none",
+        border: "none",
+        padding: "2px 6px",
+        cursor: "pointer",
+        color: hovered ? "var(--text-secondary)" : "var(--text-muted)",
+        fontSize: 14,
+        lineHeight: 1,
+        borderRadius: 3,
+      }}
+    >
+      {dir === "left" ? "‹" : "›"}
+    </button>
+  );
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface SpecPanelProps {
   useCaseId: string;
   clusters: DelegationCluster[];
+  onViewDiagram: (specId: string) => void;
+  onCollapse: () => void;
 }
 
-export function SpecPanel({ useCaseId, clusters }: SpecPanelProps) {
+export function SpecPanel({ useCaseId, clusters, onViewDiagram, onCollapse }: SpecPanelProps) {
   const { agentSpecs, opportunities, updateAgentSpec } = useAgenticDesignStore();
   const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
 
@@ -41,31 +70,34 @@ export function SpecPanel({ useCaseId, clusters }: SpecPanelProps) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-bg-border shrink-0 flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-medium font-ui uppercase tracking-wider text-text-secondary">
+      {/* Header — fixed 44px height */}
+      <div className="h-11 px-5 border-b border-bg-border shrink-0 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="text-sm font-medium font-ui uppercase tracking-wider text-text-secondary whitespace-nowrap">
             Agent Specifications
           </h2>
           {agentSpecs.length > 0 && (
-            <p className="text-xs font-ui text-text-muted mt-0.5">
+            <span className="text-xs font-ui text-text-muted whitespace-nowrap">
               {agentSpecs.length} spec{agentSpecs.length !== 1 ? "s" : ""}
               {approvedCount > 0 && ` · ${approvedCount} approved`}
-            </p>
+            </span>
           )}
         </div>
-        {approvedCount > 0 && (
-          <button
-            onClick={handleDownloadArd}
-            className="text-xs font-ui px-3 py-1 rounded-sm border transition-colors"
-            style={{
-              color: "var(--jtd-agent)",
-              borderColor: "var(--jtd-agent)",
-            }}
-          >
-            Download ARD
-          </button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {approvedCount > 0 && (
+            <button
+              onClick={handleDownloadArd}
+              className="text-xs font-ui px-3 py-1 rounded-sm border transition-colors"
+              style={{
+                color: "var(--jtd-agent)",
+                borderColor: "var(--jtd-agent)",
+              }}
+            >
+              Download ARD
+            </button>
+          )}
+          <CollapseBtn onClick={onCollapse} dir="right" />
+        </div>
       </div>
 
       {/* Cluster chips — context for consultant */}
@@ -117,6 +149,7 @@ export function SpecPanel({ useCaseId, clusters }: SpecPanelProps) {
                 spec={spec}
                 onApprove={() => handleApprove(spec.id)}
                 onDownloadArd={handleDownloadArd}
+                onViewDiagram={() => onViewDiagram(spec.id)}
                 isApproving={approvingIds.has(spec.id)}
               />
             ))}

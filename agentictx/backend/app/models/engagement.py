@@ -100,6 +100,11 @@ class UseCase(Base):
         "AgenticDesignMessage", back_populates="use_case", cascade="all, delete-orphan"
     )
 
+    # Process visualisation relationship (defined in discovery.py)
+    process_steps: Mapped[list["ProcessStep"]] = relationship(  # type: ignore[name-defined]
+        "ProcessStep", back_populates="use_case", cascade="all, delete-orphan"
+    )
+
     # Business case relationship (defined in business_case.py)
     business_case: Mapped["BusinessCase | None"] = relationship(  # type: ignore[name-defined]
         "BusinessCase", back_populates="use_case", cascade="all, delete-orphan", uselist=False

@@ -52,7 +52,6 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
     updateCognitiveJTD,
     removeCognitiveJTD,
     updateDelegationCluster,
-    removeDelegationCluster,
   } = useDiscoveryStore();
 
   const [scoringId, setScoringId] = useState<string | null>(null);

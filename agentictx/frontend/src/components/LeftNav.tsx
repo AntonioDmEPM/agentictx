@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { engagementsApi } from "@/api/engagements";
@@ -6,6 +7,7 @@ import type { EngagementListItem } from "@/types";
 export function LeftNav() {
   const navigate = useNavigate();
   const { id: activeId } = useParams<{ id?: string }>();
+  const [collapsed, setCollapsed] = useState(false);
 
   const { data: engagements } = useQuery({
     queryKey: ["engagements"],
@@ -35,20 +37,127 @@ export function LeftNav() {
     );
   }
 
-  return (
-    <nav className="w-56 shrink-0 flex flex-col border-r border-bg-border bg-bg-surface overflow-hidden">
-      {/* Dashboard link */}
-      <button
-        className={[
-          "px-4 py-3 text-left text-sm font-medium border-b border-bg-border transition-colors",
-          !activeId
-            ? "text-text-primary bg-bg-elevated"
-            : "text-text-secondary hover:text-text-primary hover:bg-bg-elevated/50",
-        ].join(" ")}
-        onClick={() => navigate("/")}
+  // ── Collapsed strip ──────────────────────────────────────────────────────
+  if (collapsed) {
+    return (
+      <div
+        style={{
+          width: 44,
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          borderRight: "1px solid var(--bg-border)",
+          background: "var(--bg-surface)",
+          overflow: "hidden",
+          transition: "width 0.2s ease",
+        }}
       >
-        All Engagements
-      </button>
+        {/* Expand button at top */}
+        <button
+          onClick={() => setCollapsed(false)}
+          title="Expand navigation"
+          style={{
+            background: "none",
+            border: "none",
+            borderBottom: "1px solid var(--bg-border)",
+            height: 44,
+            width: "100%",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--text-muted)",
+            fontSize: 14,
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+        >
+          ›
+        </button>
+
+        {/* Vertical label */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+          onClick={() => setCollapsed(false)}
+        >
+          <span
+            style={{
+              writingMode: "vertical-rl",
+              transform: "rotate(180deg)",
+              fontSize: 10,
+              fontFamily: "var(--font-ui)",
+              color: "var(--text-muted)",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              userSelect: "none",
+            }}
+          >
+            Engagements
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Expanded nav ──────────────────────────────────────────────────────────
+  return (
+    <nav
+      style={{
+        width: 224,
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        borderRight: "1px solid var(--bg-border)",
+        background: "var(--bg-surface)",
+        overflow: "hidden",
+        transition: "width 0.2s ease",
+      }}
+    >
+      {/* Dashboard link + collapse button */}
+      <div
+        className={[
+          "flex items-center justify-between border-b border-bg-border transition-colors",
+          !activeId
+            ? "bg-bg-elevated"
+            : "hover:bg-bg-elevated/50",
+        ].join(" ")}
+      >
+        <button
+          className={[
+            "flex-1 text-left px-4 py-3 text-sm font-medium transition-colors",
+            !activeId ? "text-text-primary" : "text-text-secondary hover:text-text-primary",
+          ].join(" ")}
+          onClick={() => navigate("/")}
+        >
+          All Engagements
+        </button>
+        <button
+          onClick={() => setCollapsed(true)}
+          title="Collapse navigation"
+          style={{
+            background: "none",
+            border: "none",
+            padding: "2px 10px",
+            cursor: "pointer",
+            color: "var(--text-muted)",
+            fontSize: 14,
+            lineHeight: 1,
+            borderRadius: 3,
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+        >
+          ‹
+        </button>
+      </div>
 
       <div className="flex-1 overflow-auto py-2">
         {active.length > 0 && (
