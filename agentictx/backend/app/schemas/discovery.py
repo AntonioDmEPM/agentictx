@@ -51,6 +51,12 @@ class LivedJTDRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class LivedJTDCreate(BaseModel):
+    description: str = Field(..., min_length=1)
+    system_context: str | None = None
+    cognitive_load_score: int | None = Field(None, ge=0, le=3)
+
+
 class LivedJTDUpdate(BaseModel):
     description: str | None = Field(None, min_length=1)
     system_context: str | None = None
@@ -73,6 +79,12 @@ class CognitiveJTDRead(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class CognitiveJTDCreate(BaseModel):
+    description: str = Field(..., min_length=1)
+    cognitive_zone: str | None = None
+    load_intensity: int | None = Field(None, ge=0, le=3)
 
 
 class CognitiveJTDUpdate(BaseModel):

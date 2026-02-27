@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CognitiveJTD, DelegationCluster, JTDStatus, LivedJTD, SuitabilityScores } from "@/types/discovery";
 
 // ─── Shared card wrapper ──────────────────────────────────────────────────────
@@ -61,33 +61,157 @@ function LoadDot({ score, accentColor }: { score: number | null; accentColor: st
   );
 }
 
-// ─── Inline rename input ──────────────────────────────────────────────────────
+// ─── Three-dot menu ──────────────────────────────────────────────────────────
 
-function InlineRename({
-  value,
+function ThreeDotMenu({
+  onEdit,
+  onDelete,
+}: {
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="text-text-muted hover:text-text-secondary transition-colors"
+        style={{
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontSize: 14,
+          lineHeight: 1,
+          padding: "2px 4px",
+        }}
+      >
+        ···
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 z-20 rounded-sm border bg-bg-elevated shadow-lg"
+          style={{ borderColor: "var(--bg-border)", minWidth: 100 }}
+        >
+          <button
+            onClick={() => { setOpen(false); onEdit(); }}
+            className="block w-full text-left text-xs font-ui px-3 py-1.5 hover:bg-bg-surface transition-colors"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => { setOpen(false); onDelete(); }}
+            className="block w-full text-left text-xs font-ui px-3 py-1.5 hover:bg-bg-surface transition-colors"
+            style={{ color: "var(--accent-warm)" }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Inline edit form (description + secondary field) ─────────────────────────
+
+function InlineEditForm({
+  description,
+  secondaryLabel,
+  secondaryValue,
   onSave,
   onCancel,
 }: {
-  value: string;
-  onSave: (v: string) => void;
+  description: string;
+  secondaryLabel: string;
+  secondaryValue: string;
+  onSave: (desc: string, secondary: string) => void;
   onCancel: () => void;
 }) {
-  const [text, setText] = useState(value);
+  const [desc, setDesc] = useState(description);
+  const [secondary, setSecondary] = useState(secondaryValue);
+
   return (
-    <textarea
-      className="w-full bg-bg-elevated text-text-primary text-sm font-body border border-bg-border rounded-sm px-2 py-1 resize-none focus:outline-none focus:border-accent-primary"
-      rows={3}
-      value={text}
-      onChange={(e) => setText(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          if (text.trim()) onSave(text.trim());
-        }
-        if (e.key === "Escape") onCancel();
+    <div className="flex flex-col gap-2">
+      <textarea
+        className="w-full bg-bg-elevated text-text-primary text-sm font-body border border-bg-border rounded-sm px-2 py-1 resize-none focus:outline-none focus:border-accent-primary"
+        rows={3}
+        value={desc}
+        onChange={(e) => setDesc(e.target.value)}
+        placeholder="Description"
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onCancel();
+        }}
+      />
+      <input
+        className="w-full bg-bg-elevated text-text-primary text-xs font-ui border border-bg-border rounded-sm px-2 py-1 focus:outline-none focus:border-accent-primary"
+        value={secondary}
+        onChange={(e) => setSecondary(e.target.value)}
+        placeholder={secondaryLabel}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (desc.trim()) onSave(desc.trim(), secondary.trim());
+          }
+          if (e.key === "Escape") onCancel();
+        }}
+      />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => { if (desc.trim()) onSave(desc.trim(), secondary.trim()); }}
+          className="text-xs font-ui px-2 py-0.5 rounded-sm border transition-colors"
+          style={{ color: "var(--accent-success)", borderColor: "var(--accent-success)" }}
+        >
+          Save
+        </button>
+        <button
+          onClick={onCancel}
+          className="text-xs font-ui px-2 py-0.5 rounded-sm border transition-colors"
+          style={{ color: "var(--text-muted)", borderColor: "var(--bg-border)" }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Description with two-line clamp and tooltip ─────────────────────────────
+
+function ClampedDescription({
+  text,
+  onDoubleClick,
+}: {
+  text: string;
+  onDoubleClick: () => void;
+}) {
+  return (
+    <p
+      className="text-sm text-text-primary font-body leading-snug cursor-text"
+      title={text}
+      onDoubleClick={onDoubleClick}
+      style={{
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
       }}
-      autoFocus
-    />
+    >
+      {text}
+    </p>
   );
 }
 
@@ -97,10 +221,11 @@ interface LivedJTDCardProps {
   jtd: LivedJTD;
   onConfirm: () => void;
   onReject: () => void;
-  onRename: (description: string) => void;
+  onUpdate: (description: string, systemContext: string) => void;
+  onDelete: () => void;
 }
 
-export function LivedJTDCard({ jtd, onConfirm, onReject, onRename }: LivedJTDCardProps) {
+export function LivedJTDCard({ jtd, onConfirm, onReject, onUpdate, onDelete }: LivedJTDCardProps) {
   const [editing, setEditing] = useState(false);
 
   return (
@@ -112,31 +237,31 @@ export function LivedJTDCard({ jtd, onConfirm, onReject, onRename }: LivedJTDCar
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <StatusChip status={jtd.status} />
-          <LoadDot score={jtd.cognitive_load_score} accentColor="var(--jtd-lived)" />
+          <div className="flex items-center gap-1.5">
+            <LoadDot score={jtd.cognitive_load_score} accentColor="var(--jtd-lived)" />
+            <ThreeDotMenu onEdit={() => setEditing(true)} onDelete={onDelete} />
+          </div>
         </div>
 
-        {/* Description */}
+        {/* Description / Edit form */}
         {editing ? (
-          <InlineRename
-            value={jtd.description}
-            onSave={(v) => { onRename(v); setEditing(false); }}
+          <InlineEditForm
+            description={jtd.description}
+            secondaryLabel="System context (optional)"
+            secondaryValue={jtd.system_context ?? ""}
+            onSave={(desc, ctx) => { onUpdate(desc, ctx); setEditing(false); }}
             onCancel={() => setEditing(false)}
           />
         ) : (
-          <p
-            className="text-sm text-text-primary font-body leading-snug cursor-text"
-            onDoubleClick={() => setEditing(true)}
-          >
-            {jtd.description}
-          </p>
+          <>
+            <ClampedDescription text={jtd.description} onDoubleClick={() => setEditing(true)} />
+            {jtd.system_context && (
+              <p className="text-xs text-text-muted font-ui">{jtd.system_context}</p>
+            )}
+          </>
         )}
 
-        {/* System context */}
-        {jtd.system_context && (
-          <p className="text-xs text-text-muted font-ui">{jtd.system_context}</p>
-        )}
-
-        {/* Actions */}
+        {/* Actions for proposed cards */}
         {jtd.status === "proposed" && !editing && (
           <div className="flex items-center gap-2 pt-0.5">
             <button
@@ -155,13 +280,6 @@ export function LivedJTDCard({ jtd, onConfirm, onReject, onRename }: LivedJTDCar
               style={{ color: "var(--text-muted)", borderColor: "var(--bg-border)" }}
             >
               Reject
-            </button>
-            <button
-              onClick={() => setEditing(true)}
-              className="text-xs font-ui px-2 py-0.5 rounded-sm border transition-colors ml-auto"
-              style={{ color: "var(--text-secondary)", borderColor: "var(--bg-border)" }}
-            >
-              Rename
             </button>
           </div>
         )}
@@ -176,10 +294,11 @@ interface CognitiveJTDCardProps {
   jtd: CognitiveJTD;
   onConfirm: () => void;
   onReject: () => void;
-  onRename: (description: string) => void;
+  onUpdate: (description: string, cognitiveZone: string) => void;
+  onDelete: () => void;
 }
 
-export function CognitiveJTDCard({ jtd, onConfirm, onReject, onRename }: CognitiveJTDCardProps) {
+export function CognitiveJTDCard({ jtd, onConfirm, onReject, onUpdate, onDelete }: CognitiveJTDCardProps) {
   const [editing, setEditing] = useState(false);
 
   return (
@@ -190,26 +309,27 @@ export function CognitiveJTDCard({ jtd, onConfirm, onReject, onRename }: Cogniti
       <div className="px-3 py-2.5 flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <StatusChip status={jtd.status} />
-          <LoadDot score={jtd.load_intensity} accentColor="var(--jtd-cognitive)" />
+          <div className="flex items-center gap-1.5">
+            <LoadDot score={jtd.load_intensity} accentColor="var(--jtd-cognitive)" />
+            <ThreeDotMenu onEdit={() => setEditing(true)} onDelete={onDelete} />
+          </div>
         </div>
 
         {editing ? (
-          <InlineRename
-            value={jtd.description}
-            onSave={(v) => { onRename(v); setEditing(false); }}
+          <InlineEditForm
+            description={jtd.description}
+            secondaryLabel="Cognitive zone (optional)"
+            secondaryValue={jtd.cognitive_zone ?? ""}
+            onSave={(desc, zone) => { onUpdate(desc, zone); setEditing(false); }}
             onCancel={() => setEditing(false)}
           />
         ) : (
-          <p
-            className="text-sm text-text-primary font-body leading-snug cursor-text"
-            onDoubleClick={() => setEditing(true)}
-          >
-            {jtd.description}
-          </p>
-        )}
-
-        {jtd.cognitive_zone && (
-          <p className="text-xs text-text-muted font-ui">{jtd.cognitive_zone}</p>
+          <>
+            <ClampedDescription text={jtd.description} onDoubleClick={() => setEditing(true)} />
+            {jtd.cognitive_zone && (
+              <p className="text-xs text-text-muted font-ui">{jtd.cognitive_zone}</p>
+            )}
+          </>
         )}
 
         {jtd.status === "proposed" && !editing && (
@@ -230,13 +350,6 @@ export function CognitiveJTDCard({ jtd, onConfirm, onReject, onRename }: Cogniti
               style={{ color: "var(--text-muted)", borderColor: "var(--bg-border)" }}
             >
               Reject
-            </button>
-            <button
-              onClick={() => setEditing(true)}
-              className="text-xs font-ui px-2 py-0.5 rounded-sm border transition-colors ml-auto"
-              style={{ color: "var(--text-secondary)", borderColor: "var(--bg-border)" }}
-            >
-              Rename
             </button>
           </div>
         )}

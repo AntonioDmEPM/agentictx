@@ -192,13 +192,23 @@ export function InputPanel({ useCaseId, sendMessage, notifyFileProcessed, onColl
       {/* Message thread */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {chatMessages.length === 0 && !streamingText && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-xs">
-              <p className="text-sm font-ui text-text-muted mb-2">Discovery session ready</p>
-              <p className="text-xs text-text-muted font-body leading-relaxed">
-                Describe the process, drop in a transcript, or upload a document to begin.
-                The agent will extract Lived JTDs and Cognitive JTDs simultaneously.
-              </p>
+          <div className="flex justify-start mb-4">
+            <div
+              className="w-5 h-5 rounded-sm flex items-center justify-center text-xs font-ui mr-2 mt-0.5 shrink-0"
+              style={{ background: "var(--accent-primary)", color: "white" }}
+            >
+              A
+            </div>
+            <div
+              className="max-w-[85%] rounded-sm rounded-bl-none px-3 py-2.5 text-sm font-body leading-relaxed whitespace-pre-wrap"
+              style={{
+                background: "var(--bg-elevated)",
+                color: "var(--text-primary)",
+              }}
+            >
+              {`Welcome to Discovery. I'm here to help you map the lived reality of this process — not the documented version, but what people actually do, think, and struggle with every day.
+
+To get started, describe the process in your own words, paste in interview notes or workshop transcripts, or drop a document into the upload zone below. Whatever you have is a good starting point — we'll dig deeper together from there.`}
             </div>
           </div>
         )}

@@ -40,6 +40,99 @@ function ColumnHeader({
   );
 }
 
+// ─── Inline create form ──────────────────────────────────────────────────────
+
+function CreateJTDForm({
+  secondaryLabel,
+  accentColor,
+  onSave,
+  onCancel,
+}: {
+  secondaryLabel: string;
+  accentColor: string;
+  onSave: (description: string, secondary: string) => void;
+  onCancel: () => void;
+}) {
+  const [description, setDescription] = useState("");
+  const [secondary, setSecondary] = useState("");
+
+  return (
+    <div
+      className="rounded-sm border bg-bg-surface overflow-hidden"
+      style={{ borderColor: "var(--bg-border)", borderLeftWidth: "3px", borderLeftColor: accentColor }}
+    >
+      <div className="px-3 py-2.5 flex flex-col gap-2">
+        <textarea
+          className="w-full bg-bg-elevated text-text-primary text-sm font-body border border-bg-border rounded-sm px-2 py-1 resize-none focus:outline-none focus:border-accent-primary"
+          rows={2}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Description"
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onCancel();
+          }}
+        />
+        <input
+          className="w-full bg-bg-elevated text-text-primary text-xs font-ui border border-bg-border rounded-sm px-2 py-1 focus:outline-none focus:border-accent-primary"
+          value={secondary}
+          onChange={(e) => setSecondary(e.target.value)}
+          placeholder={secondaryLabel}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (description.trim()) onSave(description.trim(), secondary.trim());
+            }
+            if (e.key === "Escape") onCancel();
+          }}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { if (description.trim()) onSave(description.trim(), secondary.trim()); }}
+            className="text-xs font-ui px-2 py-0.5 rounded-sm border transition-colors"
+            style={{ color: "var(--accent-success)", borderColor: "var(--accent-success)" }}
+          >
+            Create
+          </button>
+          <button
+            onClick={onCancel}
+            className="text-xs font-ui px-2 py-0.5 rounded-sm border transition-colors"
+            style={{ color: "var(--text-muted)", borderColor: "var(--bg-border)" }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Add button ──────────────────────────────────────────────────────────────
+
+function AddButton({ onClick, accentColor }: { onClick: () => void; accentColor: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full rounded-sm border border-dashed transition-colors flex items-center justify-center gap-1.5 py-1.5 hover:border-solid"
+      style={{
+        borderColor: "var(--bg-border)",
+        color: "var(--text-muted)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = accentColor;
+        e.currentTarget.style.color = accentColor;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "var(--bg-border)";
+        e.currentTarget.style.color = "var(--text-muted)";
+      }}
+    >
+      <span className="text-sm">+</span>
+      <span className="text-xs font-ui">Add</span>
+    </button>
+  );
+}
+
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
@@ -49,12 +142,16 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
     delegationClusters,
     updateLivedJTD,
     removeLivedJTD,
+    addLivedJTDs,
     updateCognitiveJTD,
     removeCognitiveJTD,
+    addCognitiveJTDs,
     updateDelegationCluster,
   } = useDiscoveryStore();
 
   const [scoringId, setScoringId] = useState<string | null>(null);
+  const [creatingLived, setCreatingLived] = useState(false);
+  const [creatingCognitive, setCreatingCognitive] = useState(false);
 
   // ── Lived JTD actions ────────────────────────────────────────────────────
 
@@ -76,12 +173,37 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
     }
   };
 
-  const renameLivedJTD = async (id: string, description: string) => {
+  const updateLivedJTDFields = async (id: string, description: string, systemContext: string) => {
     try {
-      const updated = await discoveryApi.updateLivedJTD(useCaseId, id, { description });
+      const updated = await discoveryApi.updateLivedJTD(useCaseId, id, {
+        description,
+        system_context: systemContext || null,
+      });
       updateLivedJTD(updated);
     } catch (e) {
-      console.error("Failed to rename Lived JTD:", e);
+      console.error("Failed to update Lived JTD:", e);
+    }
+  };
+
+  const deleteLivedJTD = async (id: string) => {
+    try {
+      await discoveryApi.deleteLivedJTD(useCaseId, id);
+      removeLivedJTD(id);
+    } catch (e) {
+      console.error("Failed to delete Lived JTD:", e);
+    }
+  };
+
+  const createLivedJTD = async (description: string, systemContext: string) => {
+    try {
+      const created = await discoveryApi.createLivedJTD(useCaseId, {
+        description,
+        system_context: systemContext || null,
+      });
+      addLivedJTDs([created]);
+      setCreatingLived(false);
+    } catch (e) {
+      console.error("Failed to create Lived JTD:", e);
     }
   };
 
@@ -105,12 +227,37 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
     }
   };
 
-  const renameCognitiveJTD = async (id: string, description: string) => {
+  const updateCognitiveJTDFields = async (id: string, description: string, cognitiveZone: string) => {
     try {
-      const updated = await discoveryApi.updateCognitiveJTD(useCaseId, id, { description });
+      const updated = await discoveryApi.updateCognitiveJTD(useCaseId, id, {
+        description,
+        cognitive_zone: cognitiveZone || null,
+      });
       updateCognitiveJTD(updated);
     } catch (e) {
-      console.error("Failed to rename Cognitive JTD:", e);
+      console.error("Failed to update Cognitive JTD:", e);
+    }
+  };
+
+  const deleteCognitiveJTD = async (id: string) => {
+    try {
+      await discoveryApi.deleteCognitiveJTD(useCaseId, id);
+      removeCognitiveJTD(id);
+    } catch (e) {
+      console.error("Failed to delete Cognitive JTD:", e);
+    }
+  };
+
+  const createCognitiveJTD = async (description: string, cognitiveZone: string) => {
+    try {
+      const created = await discoveryApi.createCognitiveJTD(useCaseId, {
+        description,
+        cognitive_zone: cognitiveZone || null,
+      });
+      addCognitiveJTDs([created]);
+      setCreatingCognitive(false);
+    } catch (e) {
+      console.error("Failed to create Cognitive JTD:", e);
     }
   };
 
@@ -159,7 +306,7 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
           accentColor="var(--jtd-lived)"
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
-          {livedJTDs.length === 0 ? (
+          {livedJTDs.length === 0 && !creatingLived ? (
             <EmptyColumn label="Lived JTDs" />
           ) : (
             livedJTDs.map((jtd) => (
@@ -172,10 +319,22 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
                   jtd={jtd}
                   onConfirm={() => confirmLivedJTD(jtd.id)}
                   onReject={() => rejectLivedJTD(jtd.id)}
-                  onRename={(desc) => renameLivedJTD(jtd.id, desc)}
+                  onUpdate={(desc, ctx) => updateLivedJTDFields(jtd.id, desc, ctx)}
+                  onDelete={() => deleteLivedJTD(jtd.id)}
                 />
               </div>
             ))
+          )}
+          {creatingLived && (
+            <CreateJTDForm
+              secondaryLabel="System context (optional)"
+              accentColor="var(--jtd-lived)"
+              onSave={createLivedJTD}
+              onCancel={() => setCreatingLived(false)}
+            />
+          )}
+          {!creatingLived && (
+            <AddButton onClick={() => setCreatingLived(true)} accentColor="var(--jtd-lived)" />
           )}
         </div>
       </div>
@@ -192,7 +351,7 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
           accentColor="var(--jtd-cognitive)"
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
-          {cognitiveJTDs.length === 0 ? (
+          {cognitiveJTDs.length === 0 && !creatingCognitive ? (
             <EmptyColumn label="Cognitive JTDs" />
           ) : (
             cognitiveJTDs.map((jtd) => (
@@ -204,10 +363,22 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
                   jtd={jtd}
                   onConfirm={() => confirmCognitiveJTD(jtd.id)}
                   onReject={() => rejectCognitiveJTD(jtd.id)}
-                  onRename={(desc) => renameCognitiveJTD(jtd.id, desc)}
+                  onUpdate={(desc, zone) => updateCognitiveJTDFields(jtd.id, desc, zone)}
+                  onDelete={() => deleteCognitiveJTD(jtd.id)}
                 />
               </div>
             ))
+          )}
+          {creatingCognitive && (
+            <CreateJTDForm
+              secondaryLabel="Cognitive zone (optional)"
+              accentColor="var(--jtd-cognitive)"
+              onSave={createCognitiveJTD}
+              onCancel={() => setCreatingCognitive(false)}
+            />
+          )}
+          {!creatingCognitive && (
+            <AddButton onClick={() => setCreatingCognitive(true)} accentColor="var(--jtd-cognitive)" />
           )}
         </div>
       </div>

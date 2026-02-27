@@ -882,4 +882,42 @@ Do not build Phase 6 until Phase 5 (Visual Output Layer) is complete and tested.
 
 ---
 
+## 14. Applied UX and Agent Behaviour Fixes
+
+### 14.1 Engagement Creation Form (Simplified)
+- Two fields only: **Client Name** (required text input) and **Industry** (dropdown)
+- Industry options: Financial Services, Insurance, Healthcare, Retail, Telecommunications, Energy & Utilities, Manufacturing, Public Sector, Professional Services, Technology, Real Estate, Other
+- `engagement_type` field removed from creation form (still exists in data model for backward compatibility)
+
+### 14.2 Discovery Opening Message
+- When a Discovery session has no messages, the conversation panel displays a warm opening message from the agent
+- The message invites the consultant to describe the process, paste notes, or upload a document
+- Single clear invitation — no numbered questions
+
+### 14.3 Discovery Agent Response Formatting
+- Short paragraphs only (2–4 sentences max), no walls of text
+- Prose only in conversational responses — never bullet points or numbered lists
+- Probing questions placed on their own line, clearly separated from preceding text
+- Bold used sparingly — only for framework-specific terms or critical distinctions
+
+### 14.4 Discovery Agent Probing Behaviour
+- After every extraction turn, the agent ends with exactly **one** targeted follow-up question
+- The question must reference something specific from what the consultant just described
+- Must go deeper into the most cognitively interesting element — never generic
+- Prompt rules enforced in `backend/app/agents/prompts/discovery_agent.py`
+
+### 14.5 Card CRUD (Manual JTD Management)
+- **Create**: `+` button at bottom of Lived JTD and Cognitive JTD columns opens inline form (description + context field). Manually created cards are set to `confirmed` status immediately (bypasses agent).
+- **Edit**: Double-click any card opens full inline edit form with description and secondary field (system context for Lived, cognitive zone for Cognitive). Same interaction pattern as Agentic Design node editing.
+- **Delete**: Three-dot menu (`···`) on every card provides Edit and Delete options. Delete removes the card regardless of status.
+- Backend: POST endpoints added at `/{uc_id}/lived-jtds` and `/{uc_id}/cognitive-jtds`
+- These are direct consultant edits — they bypass the Discovery Agent entirely
+
+### 14.6 Card Text Display
+- Card descriptions wrap to two lines maximum
+- Truncated with ellipsis (`-webkit-line-clamp: 2`) when text exceeds two lines
+- Full text shown on hover via `title` attribute tooltip
+
+---
+
 *This document is the single source of truth for the ATW build. Any ambiguity should be resolved by returning to Section 1 (Vision) and Section 2 (Framework). Default to: what makes the consultant smarter and faster, while keeping framework fidelity intact.*

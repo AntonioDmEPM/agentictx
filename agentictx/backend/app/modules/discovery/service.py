@@ -133,13 +133,14 @@ async def create_lived_jtd(
     description: str,
     system_context: str | None = None,
     cognitive_load_score: int | None = None,
+    status: str | None = None,
 ) -> LivedJTDRead:
     jtd = LivedJTD(
         use_case_id=use_case_id,
         description=description,
         system_context=system_context,
         cognitive_load_score=cognitive_load_score,
-        status=JTDStatus.proposed,
+        status=JTDStatus(status) if status else JTDStatus.proposed,
     )
     db.add(jtd)
     await db.flush()
@@ -205,13 +206,14 @@ async def create_cognitive_jtd(
     description: str,
     cognitive_zone: str | None = None,
     load_intensity: int | None = None,
+    status: str | None = None,
 ) -> CognitiveJTDRead:
     jtd = CognitiveJTD(
         use_case_id=use_case_id,
         description=description,
         cognitive_zone=cognitive_zone,
         load_intensity=load_intensity,
-        status=JTDStatus.proposed,
+        status=JTDStatus(status) if status else JTDStatus.proposed,
     )
     db.add(jtd)
     await db.flush()

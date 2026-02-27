@@ -1,11 +1,13 @@
 import * as client from "./client";
 import type {
   ClusterProcessStep,
+  CognitiveJTDCreate,
   CognitiveJTDUpdate,
   CognitiveMap,
   DelegationCluster,
   DelegationClusterUpdate,
   LivedJTD,
+  LivedJTDCreate,
   LivedJTDUpdate,
   CognitiveJTD,
   ProcessFlow,
@@ -42,6 +44,12 @@ export const discoveryApi = {
   },
 
   // ─── Lived JTDs ──────────────────────────────────────────────────────────
+  createLivedJTD: (ucId: string, payload: LivedJTDCreate) =>
+    client.post<LivedJTD, LivedJTDCreate>(
+      `${BASE(ucId)}/lived-jtds`,
+      payload
+    ),
+
   updateLivedJTD: (ucId: string, jtdId: string, payload: LivedJTDUpdate) =>
     client.patch<LivedJTD, LivedJTDUpdate>(
       `${BASE(ucId)}/lived-jtds/${jtdId}`,
@@ -52,6 +60,12 @@ export const discoveryApi = {
     client.del(`${BASE(ucId)}/lived-jtds/${jtdId}`),
 
   // ─── Cognitive JTDs ──────────────────────────────────────────────────────
+  createCognitiveJTD: (ucId: string, payload: CognitiveJTDCreate) =>
+    client.post<CognitiveJTD, CognitiveJTDCreate>(
+      `${BASE(ucId)}/cognitive-jtds`,
+      payload
+    ),
+
   updateCognitiveJTD: (
     ucId: string,
     jtdId: string,

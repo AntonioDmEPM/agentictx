@@ -3,6 +3,21 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { engagementsApi } from "@/api/engagements";
 import type { EngagementCreate } from "@/types";
 
+const INDUSTRY_OPTIONS = [
+  "Financial Services",
+  "Insurance",
+  "Healthcare",
+  "Retail",
+  "Telecommunications",
+  "Energy & Utilities",
+  "Manufacturing",
+  "Public Sector",
+  "Professional Services",
+  "Technology",
+  "Real Estate",
+  "Other",
+] as const;
+
 interface Props {
   onSuccess: () => void;
 }
@@ -12,7 +27,6 @@ export function CreateEngagementForm({ onSuccess }: Props) {
   const [form, setForm] = useState<EngagementCreate>({
     client_name: "",
     industry: "",
-    engagement_type: "",
   });
 
   const mutation = useMutation({
@@ -27,7 +41,6 @@ export function CreateEngagementForm({ onSuccess }: Props) {
     e.preventDefault();
     const payload: EngagementCreate = { client_name: form.client_name };
     if (form.industry) payload.industry = form.industry;
-    if (form.engagement_type) payload.engagement_type = form.engagement_type;
     mutation.mutate(payload);
   }
 
@@ -49,24 +62,18 @@ export function CreateEngagementForm({ onSuccess }: Props) {
 
       <div className="flex flex-col gap-1.5">
         <label className="text-xs text-text-secondary font-ui">Industry</label>
-        <input
+        <select
           className="input"
-          placeholder="e.g. Financial Services"
           value={form.industry}
           onChange={(e) => setForm({ ...form, industry: e.target.value })}
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-text-secondary font-ui">
-          Engagement Type
-        </label>
-        <input
-          className="input"
-          placeholder="e.g. Agentic Assessment"
-          value={form.engagement_type}
-          onChange={(e) => setForm({ ...form, engagement_type: e.target.value })}
-        />
+        >
+          <option value="">Select industry…</option>
+          {INDUSTRY_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
       </div>
 
       {mutation.error && (

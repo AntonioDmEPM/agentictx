@@ -52,6 +52,12 @@ export interface LivedJTD {
   updated_at: string;
 }
 
+export interface LivedJTDCreate {
+  description: string;
+  system_context?: string | null;
+  cognitive_load_score?: number | null;
+}
+
 export interface LivedJTDUpdate {
   description?: string;
   system_context?: string | null;
@@ -72,6 +78,12 @@ export interface CognitiveJTD {
   status: JTDStatus;
   created_at: string;
   updated_at: string;
+}
+
+export interface CognitiveJTDCreate {
+  description: string;
+  cognitive_zone?: string | null;
+  load_intensity?: number | null;
 }
 
 export interface CognitiveJTDUpdate {

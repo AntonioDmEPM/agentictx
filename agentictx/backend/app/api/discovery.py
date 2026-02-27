@@ -17,11 +17,13 @@ from app.modules.discovery import service
 from app.schemas.common import ResponseEnvelope
 from app.schemas.discovery import (
     ClusterProcessStepRead,
+    CognitiveJTDCreate,
     CognitiveJTDRead,
     CognitiveJTDUpdate,
     CognitiveMapRead,
     DelegationClusterRead,
     DelegationClusterUpdate,
+    LivedJTDCreate,
     LivedJTDRead,
     LivedJTDUpdate,
     ProcessFlowRead,
@@ -86,6 +88,29 @@ async def get_discovery(uc_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
 # ─── Lived JTDs ──────────────────────────────────────────────────────────────
 
+@router.post(
+    "/{uc_id}/lived-jtds",
+    response_model=ResponseEnvelope[LivedJTDRead],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_lived_jtd(
+    uc_id: uuid.UUID,
+    payload: LivedJTDCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually create a Lived JTD (consultant direct edit, bypasses agent)."""
+    jtd = await service.create_lived_jtd(
+        db,
+        use_case_id=uc_id,
+        description=payload.description,
+        system_context=payload.system_context,
+        cognitive_load_score=payload.cognitive_load_score,
+        status="confirmed",
+    )
+    await db.commit()
+    return ResponseEnvelope(data=jtd)
+
+
 @router.patch(
     "/{uc_id}/lived-jtds/{jtd_id}",
     response_model=ResponseEnvelope[LivedJTDRead],
@@ -114,6 +139,29 @@ async def delete_lived_jtd(
 
 
 # ─── Cognitive JTDs ──────────────────────────────────────────────────────────
+
+@router.post(
+    "/{uc_id}/cognitive-jtds",
+    response_model=ResponseEnvelope[CognitiveJTDRead],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_cognitive_jtd(
+    uc_id: uuid.UUID,
+    payload: CognitiveJTDCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually create a Cognitive JTD (consultant direct edit, bypasses agent)."""
+    jtd = await service.create_cognitive_jtd(
+        db,
+        use_case_id=uc_id,
+        description=payload.description,
+        cognitive_zone=payload.cognitive_zone,
+        load_intensity=payload.load_intensity,
+        status="confirmed",
+    )
+    await db.commit()
+    return ResponseEnvelope(data=jtd)
+
 
 @router.patch(
     "/{uc_id}/cognitive-jtds/{jtd_id}",
