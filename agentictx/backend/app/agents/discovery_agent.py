@@ -38,14 +38,12 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
                                 "type": "string",
                                 "description": "The system, tool, or environment where this task occurs (optional)",
                             },
-                            "cognitive_load_score": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "maximum": 3,
-                                "description": "Cognitive load score: 0=mechanical, 1=light, 2=moderate, 3=high",
+                            "phase_name": {
+                                "type": "string",
+                                "description": "Name of the process phase this task belongs to. Must match an established phase name exactly.",
                             },
                         },
-                        "required": ["description", "cognitive_load_score"],
+                        "required": ["description"],
                     },
                     "minItems": 1,
                 }
@@ -82,6 +80,10 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
                                 "maximum": 3,
                                 "description": "Cognitive load intensity: 0=pattern recognition, 1=analytical, 2=complex judgment, 3=expert synthesis",
                             },
+                            "phase_name": {
+                                "type": "string",
+                                "description": "Name of the process phase this cognitive activity belongs to. Must match an established phase name exactly.",
+                            },
                         },
                         "required": ["description", "load_intensity"],
                     },
@@ -89,6 +91,44 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
                 }
             },
             "required": ["jtds"],
+        },
+    },
+    {
+        "name": "propose_process_phases",
+        "description": (
+            "Propose process phases — the major stages of the business process being analysed. "
+            "Call this when you identify or confirm process phases from the conversation. Phases "
+            "are the structural backbone that all JTDs and Cognitive Load items anchor to. "
+            "You may call this multiple times as new phases emerge."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "phases": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Short name for this process phase (e.g. 'Intake', 'Triage', 'Resolution')",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Brief description of what happens during this phase",
+                            },
+                            "sequence_order": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "Position in the process sequence, starting from 0",
+                            },
+                        },
+                        "required": ["name", "sequence_order"],
+                    },
+                    "minItems": 1,
+                }
+            },
+            "required": ["phases"],
         },
     },
     {
@@ -133,26 +173,69 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
 
 # ─── Streaming agent runner ───────────────────────────────────────────────────
 
-def _build_system_prompt(confirmed_lived_count: int, confirmed_cognitive_count: int) -> str:
+def _build_system_prompt(
+    confirmed_lived_count: int,
+    confirmed_cognitive_count: int,
+    total_lived_count: int = 0,
+    total_cognitive_count: int = 0,
+    rejected_lived_count: int = 0,
+    rejected_cognitive_count: int = 0,
+    process_step_names: list[str] | None = None,
+    active_clusters: list[dict[str, str]] | None = None,
+) -> str:
     """Extend the static system prompt with live engagement state so the agent
-    can evaluate the delegation-cluster gate condition accurately."""
-    if confirmed_lived_count == 0 and confirmed_cognitive_count == 0:
-        return DISCOVERY_SYSTEM_PROMPT
+    can evaluate completeness, phase awareness, and cluster gate/revision mode."""
+    proposed_lived = total_lived_count - confirmed_lived_count - rejected_lived_count
+    proposed_cognitive = total_cognitive_count - confirmed_cognitive_count - rejected_cognitive_count
 
-    state_note = (
-        "\n\n## Current Engagement State\n\n"
-        "The consultant has confirmed the following extracted material:\n"
-        f"- Confirmed Lived JTDs: {confirmed_lived_count}\n"
-        f"- Confirmed Cognitive JTDs: {confirmed_cognitive_count}\n"
+    state = "\n\n## Engagement State\n"
+
+    # 1. Extracted Material
+    state += "\n### Extracted Material\n"
+    state += (
+        f"- JTDs: {confirmed_lived_count} confirmed, {proposed_lived} proposed, "
+        f"{rejected_lived_count} rejected (total {total_lived_count})\n"
+        f"- Cognitive Load: {confirmed_cognitive_count} confirmed, {proposed_cognitive} proposed, "
+        f"{rejected_cognitive_count} rejected (total {total_cognitive_count})\n"
     )
-    if confirmed_lived_count >= 3 and confirmed_cognitive_count >= 3:
-        state_note += (
-            "\nThe gate condition is met — sufficient confirmed material exists in both "
-            "streams. You should now propose delegation clusters by calling "
-            "`propose_delegation_cluster` for groups of Cognitive JTDs that share "
-            "sufficient purpose and context to be handled by a single agent."
+
+    # 2. Process Phases
+    state += "\n### Process Phases\n"
+    if process_step_names:
+        state += "Established phases: " + ", ".join(process_step_names) + "\n"
+    else:
+        state += (
+            "None established yet. Identifying process phases should be your first "
+            "priority — ask about the major stages of the process.\n"
         )
-    return DISCOVERY_SYSTEM_PROMPT + state_note
+
+    # 3. Existing Delegation Clusters
+    state += "\n### Existing Delegation Clusters\n"
+    if active_clusters:
+        for c in active_clusters:
+            state += f"- {c['name']} (status: {c['status']})\n"
+        state += (
+            "\nYou are in REVISION MODE. The consultant may give feedback on these "
+            "clusters — split, merge, rename, or reassign. Act on feedback directly "
+            "and propose only the revised set.\n"
+        )
+    else:
+        state += "None proposed yet.\n"
+
+    # 4. Cluster Gate
+    if (
+        confirmed_lived_count >= 3
+        and confirmed_cognitive_count >= 3
+        and not active_clusters
+    ):
+        state += (
+            "\n### Cluster Gate\n"
+            "The gate condition is met — sufficient confirmed material exists in both "
+            "streams. You should proactively suggest proposing delegation clusters "
+            "in your next conversational response.\n"
+        )
+
+    return DISCOVERY_SYSTEM_PROMPT + state
 
 
 async def run_discovery_stream(
@@ -162,6 +245,12 @@ async def run_discovery_stream(
     pending_tool_results: list[dict[str, Any]] | None = None,
     confirmed_lived_count: int = 0,
     confirmed_cognitive_count: int = 0,
+    total_lived_count: int = 0,
+    total_cognitive_count: int = 0,
+    rejected_lived_count: int = 0,
+    rejected_cognitive_count: int = 0,
+    process_step_names: list[str] | None = None,
+    active_clusters: list[dict[str, str]] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Stream discovery agent responses as WebSocket events.
@@ -175,90 +264,147 @@ async def run_discovery_stream(
     - {"type": "text_delta", "delta": str}
     - {"type": "lived_jtds_proposed", "jtds": list}
     - {"type": "cognitive_jtds_proposed", "jtds": list}
+    - {"type": "process_phases_proposed", "phases": list}
     - {"type": "cluster_proposed", "cluster": dict}
     - {"type": "message_complete", "full_content": list}
     - {"type": "error", "message": str}
     """
     client = get_anthropic_client()
-    system_prompt = _build_system_prompt(confirmed_lived_count, confirmed_cognitive_count)
+    system_prompt = _build_system_prompt(
+        confirmed_lived_count=confirmed_lived_count,
+        confirmed_cognitive_count=confirmed_cognitive_count,
+        total_lived_count=total_lived_count,
+        total_cognitive_count=total_cognitive_count,
+        rejected_lived_count=rejected_lived_count,
+        rejected_cognitive_count=rejected_cognitive_count,
+        process_step_names=process_step_names,
+        active_clusters=active_clusters,
+    )
 
     messages = list(conversation_history)
     # Prepend any tool_result blocks that close out the last assistant turn so
     # the API sees a well-formed alternating conversation before the new text.
     user_content: list[dict[str, Any]] = list(pending_tool_results or []) + list(new_user_content)
-    messages.append({"role": "user", "content": user_content})
+    # Merge into last message if it is already a user turn — avoids consecutive
+    # user messages which the Anthropic API rejects with 400.
+    if messages and messages[-1]["role"] == "user":
+        messages[-1] = {
+            "role": "user",
+            "content": list(messages[-1]["content"]) + user_content,
+        }
+    else:
+        messages.append({"role": "user", "content": user_content})
 
     full_content: list[dict[str, Any]] = []
-    current_text = ""
-    current_tool_use: dict[str, Any] | None = None
-    current_tool_input_str = ""
+
+    # Tool-use continuation: when Claude responds with only tool_use blocks
+    # (stop_reason="tool_use"), we must send synthetic tool_result blocks back
+    # and call the API again so it produces a text response.  Without this the
+    # agent can end a turn silently — no text streamed to the conversation panel.
+    MAX_TOOL_ROUNDS = 5
 
     try:
-        async with client.messages.stream(
-            model=reasoning_model(),
-            max_tokens=4096,
-            system=system_prompt,
-            tools=DISCOVERY_TOOLS,  # type: ignore[arg-type]
-            messages=messages,  # type: ignore[arg-type]
-        ) as stream:
-            async for event in stream:
-                event_type = event.type
+        for _round in range(MAX_TOOL_ROUNDS + 1):
+            current_text = ""
+            current_tool_use: dict[str, Any] | None = None
+            current_tool_input_str = ""
+            round_content: list[dict[str, Any]] = []
+            stop_reason: str | None = None
 
-                if event_type == "content_block_start":
-                    block = event.content_block
-                    if block.type == "text":
-                        current_text = ""
-                    elif block.type == "tool_use":
-                        current_tool_use = {
-                            "type": "tool_use",
-                            "id": block.id,
-                            "name": block.name,
-                            "input": {},
-                        }
-                        current_tool_input_str = ""
+            async with client.messages.stream(
+                model=reasoning_model(),
+                max_tokens=4096,
+                system=system_prompt,
+                tools=DISCOVERY_TOOLS,  # type: ignore[arg-type]
+                messages=messages,  # type: ignore[arg-type]
+            ) as stream:
+                async for event in stream:
+                    event_type = event.type
 
-                elif event_type == "content_block_delta":
-                    delta = event.delta
-                    if delta.type == "text_delta":
-                        current_text += delta.text
-                        yield {"type": "text_delta", "delta": delta.text}
-                    elif delta.type == "input_json_delta":
-                        current_tool_input_str += delta.partial_json
-
-                elif event_type == "content_block_stop":
-                    if current_text:
-                        full_content.append({"type": "text", "text": current_text})
-                        current_text = ""
-                    elif current_tool_use is not None:
-                        # Parse accumulated tool input JSON
-                        try:
-                            tool_input = json.loads(current_tool_input_str) if current_tool_input_str else {}
-                        except json.JSONDecodeError:
-                            tool_input = {}
-
-                        current_tool_use["input"] = tool_input
-                        full_content.append(current_tool_use)
-
-                        # Emit structured events per tool
-                        tool_name = current_tool_use["name"]
-                        if tool_name == "propose_lived_jtds":
-                            yield {
-                                "type": "lived_jtds_proposed",
-                                "jtds": tool_input.get("jtds", []),
+                    if event_type == "content_block_start":
+                        block = event.content_block
+                        if block.type == "text":
+                            current_text = ""
+                        elif block.type == "tool_use":
+                            current_tool_use = {
+                                "type": "tool_use",
+                                "id": block.id,
+                                "name": block.name,
+                                "input": {},
                             }
-                        elif tool_name == "propose_cognitive_jtds":
-                            yield {
-                                "type": "cognitive_jtds_proposed",
-                                "jtds": tool_input.get("jtds", []),
-                            }
-                        elif tool_name == "propose_delegation_cluster":
-                            yield {
-                                "type": "cluster_proposed",
-                                "cluster": tool_input,
-                            }
+                            current_tool_input_str = ""
 
-                        current_tool_use = None
-                        current_tool_input_str = ""
+                    elif event_type == "content_block_delta":
+                        delta = event.delta
+                        if delta.type == "text_delta":
+                            current_text += delta.text
+                            yield {"type": "text_delta", "delta": delta.text}
+                        elif delta.type == "input_json_delta":
+                            current_tool_input_str += delta.partial_json
+
+                    elif event_type == "content_block_stop":
+                        if current_text:
+                            round_content.append({"type": "text", "text": current_text})
+                            current_text = ""
+                        elif current_tool_use is not None:
+                            # Parse accumulated tool input JSON
+                            try:
+                                tool_input = json.loads(current_tool_input_str) if current_tool_input_str else {}
+                            except json.JSONDecodeError:
+                                tool_input = {}
+
+                            current_tool_use["input"] = tool_input
+                            round_content.append(current_tool_use)
+
+                            # Emit structured events per tool
+                            tool_name = current_tool_use["name"]
+                            if tool_name == "propose_lived_jtds":
+                                yield {
+                                    "type": "lived_jtds_proposed",
+                                    "jtds": tool_input.get("jtds", []),
+                                }
+                            elif tool_name == "propose_cognitive_jtds":
+                                yield {
+                                    "type": "cognitive_jtds_proposed",
+                                    "jtds": tool_input.get("jtds", []),
+                                }
+                            elif tool_name == "propose_process_phases":
+                                yield {
+                                    "type": "process_phases_proposed",
+                                    "phases": tool_input.get("phases", []),
+                                }
+                            elif tool_name == "propose_delegation_cluster":
+                                yield {
+                                    "type": "cluster_proposed",
+                                    "cluster": tool_input,
+                                }
+
+                            current_tool_use = None
+                            current_tool_input_str = ""
+
+                    elif event_type == "message_delta":
+                        if hasattr(event.delta, "stop_reason"):
+                            stop_reason = event.delta.stop_reason
+
+            full_content.extend(round_content)
+
+            # Only continue when Claude explicitly signals it expects tool results
+            if stop_reason != "tool_use":
+                break
+
+            # Append the tool-only assistant turn and synthetic results so the
+            # next API call sees a well-formed conversation and can produce text.
+            messages.append({"role": "assistant", "content": round_content})
+            tool_results: list[dict[str, Any]] = [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": block["id"],
+                    "content": "Saved.",
+                }
+                for block in round_content
+                if block.get("type") == "tool_use"
+            ]
+            messages.append({"role": "user", "content": tool_results})
 
         yield {"type": "message_complete", "full_content": full_content}
 

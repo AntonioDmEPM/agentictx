@@ -6,7 +6,7 @@ import { useDiscoveryStore } from "@/store/discoveryStore";
 import { useDiscoveryWebSocket } from "./hooks/useDiscoveryWebSocket";
 import { InputPanel } from "./InputPanel";
 import { CognitiveMapPanel } from "./CognitiveMapPanel";
-import { ProcessVisualisationPanel } from "./ProcessVisualisationPanel";
+import ProcessMatrixGrid from "./ProcessMatrixGrid";
 import type { ConversationMessage } from "@/types/discovery";
 
 function extractText(blocks: ConversationMessage["content"]): string {
@@ -171,7 +171,6 @@ export function DiscoveryModule() {
         setProcessFlow({
           use_case_id: useCaseId,
           steps: [],
-          jtd_links: [],
           cluster_steps: [],
         });
       }
@@ -223,7 +222,7 @@ export function DiscoveryModule() {
               margin: 0,
             }}
           >
-            Process Flow
+            Cognitive Map
           </h2>
           <div style={{ display: "flex", gap: 4 }}>
             <ViewToggle
@@ -236,7 +235,7 @@ export function DiscoveryModule() {
         </div>
 
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <ProcessVisualisationPanel useCaseId={useCaseId} />
+          <ProcessMatrixGrid useCaseId={useCaseId} />
         </div>
       </div>
     );

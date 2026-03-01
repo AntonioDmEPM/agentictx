@@ -20,12 +20,16 @@ export function useDiscoveryWebSocket({
 
   const {
     addChatMessage,
+    addSystemMessage,
     appendStreamDelta,
     finaliseStreamingMessage,
     setIsStreaming,
     addLivedJTDs,
     addCognitiveJTDs,
+    addProcessSteps,
     addDelegationCluster,
+    markClustersReplaced,
+    setClusterColumnHighlight,
   } = useDiscoveryStore();
 
   const handleEvent = useCallback(
@@ -44,12 +48,28 @@ export function useDiscoveryWebSocket({
           addCognitiveJTDs(event.jtds);
           break;
 
+        case "process_phases_proposed":
+          addProcessSteps(event.phases);
+          break;
+
         case "cluster_proposed":
           addDelegationCluster(event.cluster);
           break;
 
         case "message_complete":
           finaliseStreamingMessage(event.message_id);
+          break;
+
+        case "system_notification":
+          addSystemMessage(event.text);
+          if (event.highlight === "clusters") {
+            setClusterColumnHighlight(true);
+            setTimeout(() => setClusterColumnHighlight(false), 2000);
+          }
+          break;
+
+        case "clusters_replaced":
+          markClustersReplaced();
           break;
 
         case "error":
@@ -68,7 +88,11 @@ export function useDiscoveryWebSocket({
       setIsStreaming,
       addLivedJTDs,
       addCognitiveJTDs,
+      addProcessSteps,
       addDelegationCluster,
+      markClustersReplaced,
+      setClusterColumnHighlight,
+      addSystemMessage,
       finaliseStreamingMessage,
       addChatMessage,
     ]

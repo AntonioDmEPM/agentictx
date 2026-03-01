@@ -215,3 +215,17 @@
     }
   }
 }
+
+/* ── Discovery: Cluster pulse animation ────────────────────────────────────── */
+@keyframes clusterPulse {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(45, 212, 160, 0.06); }
+}
+.cluster-pulse { animation: clusterPulse 600ms ease-in-out 3; }
+
+/* ── Discovery: Message highlight for provenance scroll ────────────────────── */
+@keyframes messageHighlight {
+  0% { background-color: rgba(79, 127, 255, 0.15); }
+  100% { background-color: transparent; }
+}
+.message-highlight { animation: messageHighlight 1.5s ease-out; }

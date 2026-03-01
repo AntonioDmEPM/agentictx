@@ -315,8 +315,14 @@ async def _handle_design_ws_session(
 
                 elif event_type == "message_complete":
                     full_assistant_content = event["full_content"]
+                    # Strip tool_use blocks — only persist text for display.
+                    # Tool outputs (agent specs) are saved to their own tables.
+                    text_only_content = [
+                        b for b in full_assistant_content
+                        if not (isinstance(b, dict) and b.get("type") == "tool_use")
+                    ]
                     saved_msg = await service.save_design_message(
-                        db, uc_id, DesignMessageRole.assistant, full_assistant_content
+                        db, uc_id, DesignMessageRole.assistant, text_only_content
                     )
                     await db.commit()
                     await websocket.send_text(
@@ -390,11 +396,11 @@ def _build_anthropic_history(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Convert AgenticDesignMessageRead list to Anthropic messages format.
 
-    Mirrors the exact same logic as discovery.py — synthesises tool_result
-    blocks for any tool_use blocks in the last assistant turn.
+    All tool_use and tool_result blocks are stripped — tool outputs are
+    persisted in their own domain tables.  This eliminates the fragile
+    tool_use / tool_result pairing requirement that causes API 400 errors.
     """
     result: list[dict[str, Any]] = []
-    pending_tool_results: list[dict[str, Any]] = []
 
     for msg in messages:
         content = msg.content
@@ -403,18 +409,22 @@ def _build_anthropic_history(
 
         role = msg.role.value if hasattr(msg.role, "value") else msg.role
 
-        if role == "user" and pending_tool_results:
-            content = pending_tool_results + list(content)
-            pending_tool_results = []
+        # Strip tool artifacts — not needed in history
+        content = [
+            b for b in content
+            if not (
+                isinstance(b, dict)
+                and b.get("type") in ("tool_use", "tool_result")
+            )
+        ]
 
-        result.append({"role": role, "content": content})
+        if not content:
+            continue
 
-        if role == "assistant":
-            tool_uses = [b for b in content if isinstance(b, dict) and b.get("type") == "tool_use"]
-            if tool_uses:
-                pending_tool_results = [
-                    {"type": "tool_result", "tool_use_id": b["id"], "content": "Saved."}
-                    for b in tool_uses
-                ]
+        # Merge consecutive same-role messages
+        if result and result[-1]["role"] == role:
+            result[-1]["content"] = list(result[-1]["content"]) + list(content)
+        else:
+            result.append({"role": role, "content": content})
 
-    return result, pending_tool_results
+    return result, []

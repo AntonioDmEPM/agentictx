@@ -14,7 +14,6 @@ import type {
   LivedJTD,
   CognitiveJTD,
   ProcessStep,
-  ProcessStepJTDLink,
 } from "@/types/discovery";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -286,34 +285,40 @@ function JTDPicker({
 
 // ─── Step Node ────────────────────────────────────────────────────────────────
 
+interface LinkedJTD {
+  id: string;
+  type: "lived" | "cognitive";
+  description: string;
+}
+
 function StepNode({
   step,
-  links,
+  linkedJTDs,
   livedJTDs,
   cognitiveJTDs,
   isLast,
   useCaseId,
   onUpdated,
   onDeleted,
-  onLinkAdded,
-  onLinkRemoved,
+  onJTDLinked,
+  onJTDUnlinked,
 }: {
   step: ProcessStep;
-  links: ProcessStepJTDLink[];
+  linkedJTDs: LinkedJTD[];
   livedJTDs: LivedJTD[];
   cognitiveJTDs: CognitiveJTD[];
   isLast: boolean;
   useCaseId: string;
   onUpdated: (s: ProcessStep) => void;
   onDeleted: (id: string) => void;
-  onLinkAdded: (link: ProcessStepJTDLink) => void;
-  onLinkRemoved: (linkId: string) => void;
+  onJTDLinked: (type: "lived" | "cognitive", jtdId: string) => void;
+  onJTDUnlinked: (type: "lived" | "cognitive", jtdId: string) => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const linkedIds = new Set(links.map((l) => l.jtd_id));
+  const linkedIds = new Set(linkedJTDs.map((j) => j.id));
 
   const handleRename = useCallback(
     async (newName: string) => {
@@ -340,32 +345,27 @@ function StepNode({
 
   const handleLinkPick = useCallback(
     async (type: "lived" | "cognitive", jtdId: string) => {
-      const link = await discoveryApi.addJTDLink(useCaseId, step.id, {
-        jtd_type: type,
-        jtd_id: jtdId,
-        sequence_within_step: links.length,
-      });
-      onLinkAdded(link);
+      if (type === "lived") {
+        await discoveryApi.updateLivedJTD(useCaseId, jtdId, { process_phase_id: step.id });
+      } else {
+        await discoveryApi.updateCognitiveJTD(useCaseId, jtdId, { process_phase_id: step.id });
+      }
+      onJTDLinked(type, jtdId);
     },
-    [useCaseId, step.id, links.length, onLinkAdded]
+    [useCaseId, step.id, onJTDLinked]
   );
 
   const handleUnlink = useCallback(
-    async (link: ProcessStepJTDLink) => {
-      await discoveryApi.removeJTDLink(useCaseId, step.id, link.id);
-      onLinkRemoved(link.id);
+    async (type: "lived" | "cognitive", jtdId: string) => {
+      if (type === "lived") {
+        await discoveryApi.updateLivedJTD(useCaseId, jtdId, { process_phase_id: null });
+      } else {
+        await discoveryApi.updateCognitiveJTD(useCaseId, jtdId, { process_phase_id: null });
+      }
+      onJTDUnlinked(type, jtdId);
     },
-    [useCaseId, step.id, onLinkRemoved]
+    [useCaseId, onJTDUnlinked]
   );
-
-  const getJTDLabel = (link: ProcessStepJTDLink): string => {
-    if (link.jtd_type === "lived") {
-      const j = livedJTDs.find((x) => x.id === link.jtd_id);
-      return j ? j.description : link.jtd_id.slice(0, 8) + "…";
-    }
-    const j = cognitiveJTDs.find((x) => x.id === link.jtd_id);
-    return j ? j.description : link.jtd_id.slice(0, 8) + "…";
-  };
 
   return (
     <div style={{ display: "flex", alignItems: "flex-start", gap: 0 }}>
@@ -501,12 +501,12 @@ function StepNode({
             position: "relative",
           }}
         >
-          {links.map((link) => (
+          {linkedJTDs.map((j) => (
             <JTDPill
-              key={link.id}
-              label={getJTDLabel(link)}
-              type={link.jtd_type}
-              onRemove={() => handleUnlink(link)}
+              key={j.id}
+              label={j.description}
+              type={j.type}
+              onRemove={() => handleUnlink(j.type, j.id)}
             />
           ))}
 
@@ -721,13 +721,24 @@ export function ProcessVisualisationPanel({
   const pendingAssignments = useRef<Map<string, Set<string>>>(new Map());
 
   const steps = processFlow?.steps ?? [];
-  const jtdLinks = processFlow?.jtd_links ?? [];
   const clusterSteps = processFlow?.cluster_steps ?? [];
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  const linksForStep = (stepId: string) =>
-    jtdLinks.filter((l) => l.process_step_id === stepId);
+  const jtdsForStep = (stepId: string): LinkedJTD[] => {
+    const result: LinkedJTD[] = [];
+    for (const j of livedJTDs) {
+      if (j.process_phase_id === stepId) {
+        result.push({ id: j.id, type: "lived", description: j.description });
+      }
+    }
+    for (const j of cognitiveJTDs) {
+      if (j.process_phase_id === stepId) {
+        result.push({ id: j.id, type: "cognitive", description: j.description });
+      }
+    }
+    return result;
+  };
 
   const assignedStepIdsForCluster = (clusterId: string): Set<string> =>
     new Set(
@@ -760,9 +771,6 @@ export function ProcessVisualisationPanel({
       setProcessFlow({
         ...processFlow,
         steps: processFlow.steps.filter((s) => s.id !== deletedId),
-        jtd_links: processFlow.jtd_links.filter(
-          (l) => l.process_step_id !== deletedId
-        ),
         cluster_steps: processFlow.cluster_steps.filter(
           (cs) => cs.process_step_id !== deletedId
         ),
@@ -771,26 +779,34 @@ export function ProcessVisualisationPanel({
     [processFlow, setProcessFlow]
   );
 
-  const handleLinkAdded = useCallback(
-    (link: ProcessStepJTDLink) => {
-      if (!processFlow) return;
-      setProcessFlow({
-        ...processFlow,
-        jtd_links: [...processFlow.jtd_links, link],
-      });
+  const { updateLivedJTD: storeUpdateLivedJTD, updateCognitiveJTD: storeUpdateCognitiveJTD } = useDiscoveryStore();
+
+  const handleJTDLinked = useCallback(
+    (type: "lived" | "cognitive", jtdId: string) => {
+      // Store already has the JTD — we need to re-fetch to update process_phase_id
+      // The API call was already made in the StepNode; just refresh the store entry
+      if (type === "lived") {
+        const jtd = livedJTDs.find((j) => j.id === jtdId);
+        if (jtd) storeUpdateLivedJTD({ ...jtd, process_phase_id: jtdId });
+      } else {
+        const jtd = cognitiveJTDs.find((j) => j.id === jtdId);
+        if (jtd) storeUpdateCognitiveJTD({ ...jtd, process_phase_id: jtdId });
+      }
     },
-    [processFlow, setProcessFlow]
+    [livedJTDs, cognitiveJTDs, storeUpdateLivedJTD, storeUpdateCognitiveJTD]
   );
 
-  const handleLinkRemoved = useCallback(
-    (linkId: string) => {
-      if (!processFlow) return;
-      setProcessFlow({
-        ...processFlow,
-        jtd_links: processFlow.jtd_links.filter((l) => l.id !== linkId),
-      });
+  const handleJTDUnlinked = useCallback(
+    (type: "lived" | "cognitive", jtdId: string) => {
+      if (type === "lived") {
+        const jtd = livedJTDs.find((j) => j.id === jtdId);
+        if (jtd) storeUpdateLivedJTD({ ...jtd, process_phase_id: null });
+      } else {
+        const jtd = cognitiveJTDs.find((j) => j.id === jtdId);
+        if (jtd) storeUpdateCognitiveJTD({ ...jtd, process_phase_id: null });
+      }
     },
-    [processFlow, setProcessFlow]
+    [livedJTDs, cognitiveJTDs, storeUpdateLivedJTD, storeUpdateCognitiveJTD]
   );
 
   // ── Add step ──────────────────────────────────────────────────────────────
@@ -811,7 +827,6 @@ export function ProcessVisualisationPanel({
         setProcessFlow({
           use_case_id: useCaseId,
           steps: [created],
-          jtd_links: [],
           cluster_steps: [],
         });
       } else {
@@ -1100,15 +1115,15 @@ export function ProcessVisualisationPanel({
 
               <StepNode
                 step={step}
-                links={linksForStep(step.id)}
+                linkedJTDs={jtdsForStep(step.id)}
                 livedJTDs={livedJTDs}
                 cognitiveJTDs={cognitiveJTDs}
                 isLast={idx === steps.length - 1}
                 useCaseId={useCaseId}
                 onUpdated={handleStepUpdated}
                 onDeleted={handleStepDeleted}
-                onLinkAdded={handleLinkAdded}
-                onLinkRemoved={handleLinkRemoved}
+                onJTDLinked={handleJTDLinked}
+                onJTDUnlinked={handleJTDUnlinked}
               />
             </div>
           ))}
