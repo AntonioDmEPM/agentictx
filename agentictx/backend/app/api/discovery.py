@@ -219,6 +219,50 @@ async def delete_cluster(
         raise HTTPException(status_code=404, detail="Delegation cluster not found")
 
 
+# ─── Auto-rescore helper ─────────────────────────────────────────────────────
+
+async def _auto_rescore_cluster(
+    db: AsyncSession,
+    uc_id: uuid.UUID,
+    cluster_id: uuid.UUID,
+) -> None:
+    """Re-run suitability scoring for a cluster that has already been scored.
+
+    Called automatically after membership edits. Silently skips if the cluster
+    is not yet scored (is_scored=False) or if the scoring agent fails.
+    """
+    cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
+    if cluster is None or not cluster.is_scored:
+        return
+
+    all_cognitive = await service.list_cognitive_jtds(db, uc_id)
+    all_lived = await service.list_lived_jtds(db, uc_id)
+
+    cognitive_context = [
+        {"description": j.description, "cognitive_zone": j.cognitive_zone, "load_intensity": j.load_intensity}
+        for j in all_cognitive
+        if j.status in ("confirmed", "proposed")
+    ]
+    lived_context = [
+        {"description": j.description, "system_context": j.system_context}
+        for j in all_lived
+        if j.status in ("confirmed", "proposed")
+    ]
+
+    try:
+        scores = await score_cluster(
+            cluster_id=cluster_id,
+            cluster_name=cluster.name,
+            cluster_purpose=cluster.purpose,
+            cognitive_jtds=cognitive_context,
+            lived_jtds=lived_context,
+        )
+        await service.apply_suitability_scores(db, uc_id, cluster_id, scores)
+    except (ValueError, Exception):
+        # Scoring failure should not block membership edits
+        pass
+
+
 # ─── Cluster Membership Editing ──────────────────────────────────────────────
 
 @router.put(
@@ -233,6 +277,7 @@ async def add_cluster_lived_jtd(
 ):
     """Add a Lived JTD to a delegation cluster."""
     await service.add_cluster_jtd_link(db, cluster_id, jtd_id)
+    await _auto_rescore_cluster(db, uc_id, cluster_id)
     cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
     if cluster is None:
         raise HTTPException(status_code=404, detail="Delegation cluster not found")
@@ -254,6 +299,7 @@ async def remove_cluster_lived_jtd(
     removed = await service.remove_cluster_jtd_link(db, cluster_id, jtd_id)
     if not removed:
         raise HTTPException(status_code=404, detail="Link not found")
+    await _auto_rescore_cluster(db, uc_id, cluster_id)
     cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
     if cluster is None:
         raise HTTPException(status_code=404, detail="Delegation cluster not found")
@@ -273,6 +319,7 @@ async def add_cluster_cognitive_jtd(
 ):
     """Add a Cognitive Load item to a delegation cluster."""
     await service.add_cluster_cognitive_link(db, cluster_id, jtd_id)
+    await _auto_rescore_cluster(db, uc_id, cluster_id)
     cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
     if cluster is None:
         raise HTTPException(status_code=404, detail="Delegation cluster not found")
@@ -294,6 +341,7 @@ async def remove_cluster_cognitive_jtd(
     removed = await service.remove_cluster_cognitive_link(db, cluster_id, jtd_id)
     if not removed:
         raise HTTPException(status_code=404, detail="Link not found")
+    await _auto_rescore_cluster(db, uc_id, cluster_id)
     cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
     if cluster is None:
         raise HTTPException(status_code=404, detail="Delegation cluster not found")

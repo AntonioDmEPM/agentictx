@@ -1038,7 +1038,7 @@ Proposed (agent-generated)
 
 **Confirm button must always be visible** on Proposed clusters — scoring never hides or replaces it.
 
-**Auto-score**: Scoring triggers automatically when cluster membership is saved. There is no manual Score button after the initial view — score updates whenever membership changes.
+**Auto-score**: Scoring triggers automatically on every membership change (each checkbox toggle calls the server, which re-runs the suitability agent if `is_scored` is already `true`). The Score button is only shown for clusters that have never been scored (`is_scored=false`). Once scored, `is_scored` never reverts to `false` — all subsequent membership edits trigger automatic re-scoring server-side, and the updated scores are returned in the API response without any additional user action.
 
 ### 14.12 Cluster Membership Editing
 
@@ -1046,7 +1046,7 @@ Every cluster card in the Extract view has an Edit button. Clicking Edit opens a
 - All confirmed JTDs — each with a checkbox showing whether it is in this cluster
 - All confirmed Cognitive Load items — each with a checkbox showing whether it is in this cluster
 
-Consultant can check/uncheck items freely. Save triggers auto-score recalculation. The Confirm button is always visible alongside the Edit and Score display.
+Consultant can check/uncheck items freely. Each toggle immediately calls the server to update the link table; if the cluster has been scored (`is_scored=true`), the server automatically re-runs suitability scoring and returns the updated scores in the response. The Confirm button is always visible alongside the Edit and Score display.
 
 ### 14.13 Cluster Selection Highlighting
 
