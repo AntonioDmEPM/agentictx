@@ -4,9 +4,9 @@ export type RawInputType = "transcript" | "document" | "image" | "note";
 
 export type JTDStatus = "proposed" | "confirmed" | "rejected";
 
-export type ClusterStatus = "proposed" | "confirmed" | "scored";
+export type ClusterStatus = "proposed" | "confirmed" | "replaced";
 
-export type MessageRole = "user" | "assistant";
+export type MessageRole = "user" | "assistant" | "system";
 
 // ─── Raw Input ────────────────────────────────────────────────────────────────
 
@@ -45,9 +45,11 @@ export interface LivedJTD {
   use_case_id: string;
   description: string;
   system_context: string | null;
-  cognitive_load_score: number | null;
+  process_phase_id: string | null;
   status: JTDStatus;
   linked_cognitive_jtd_id: string | null;
+  source_message_id: string | null;
+  is_modified: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -55,15 +57,16 @@ export interface LivedJTD {
 export interface LivedJTDCreate {
   description: string;
   system_context?: string | null;
-  cognitive_load_score?: number | null;
+  process_phase_id?: string | null;
 }
 
 export interface LivedJTDUpdate {
   description?: string;
   system_context?: string | null;
-  cognitive_load_score?: number | null;
+  process_phase_id?: string | null;
   status?: JTDStatus;
   linked_cognitive_jtd_id?: string | null;
+  is_modified?: boolean;
 }
 
 // ─── Cognitive JTD ───────────────────────────────────────────────────────────
@@ -74,8 +77,11 @@ export interface CognitiveJTD {
   description: string;
   cognitive_zone: string | null;
   load_intensity: number | null;
+  process_phase_id: string | null;
   linked_lived_jtd_ids: string[] | null;
   status: JTDStatus;
+  source_message_id: string | null;
+  is_modified: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -84,14 +90,17 @@ export interface CognitiveJTDCreate {
   description: string;
   cognitive_zone?: string | null;
   load_intensity?: number | null;
+  process_phase_id?: string | null;
 }
 
 export interface CognitiveJTDUpdate {
   description?: string;
   cognitive_zone?: string | null;
   load_intensity?: number | null;
+  process_phase_id?: string | null;
   linked_lived_jtd_ids?: string[] | null;
   status?: JTDStatus;
+  is_modified?: boolean;
 }
 
 // ─── Delegation Cluster ───────────────────────────────────────────────────────
@@ -116,7 +125,9 @@ export interface DelegationCluster {
   cognitive_jtd_ids: string[];
   lived_jtd_ids: string[] | null;
   suitability_scores: SuitabilityScores | null;
+  delegation_mode: string | null;
   status: ClusterStatus;
+  is_scored: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -126,6 +137,7 @@ export interface DelegationClusterUpdate {
   purpose?: string | null;
   cognitive_jtd_ids?: string[];
   lived_jtd_ids?: string[] | null;
+  delegation_mode?: string | null;
   status?: ClusterStatus;
 }
 
@@ -172,13 +184,32 @@ export interface WSError {
   message: string;
 }
 
+export interface WSSystemNotification {
+  type: "system_notification";
+  text: string;
+  highlight?: string;
+}
+
+export interface WSClustersReplaced {
+  type: "clusters_replaced";
+  count: number;
+}
+
+export interface WSProcessPhasesProposed {
+  type: "process_phases_proposed";
+  phases: ProcessStep[];
+}
+
 export type WSServerEvent =
   | WSTextDelta
   | WSLivedJTDsProposed
   | WSCognitiveJTDsProposed
+  | WSProcessPhasesProposed
   | WSClusterProposed
   | WSMessageComplete
-  | WSError;
+  | WSError
+  | WSSystemNotification
+  | WSClustersReplaced;
 
 // ─── Process Visualisation ────────────────────────────────────────────────────
 
@@ -186,6 +217,7 @@ export interface ProcessStep {
   id: string;
   use_case_id: string;
   name: string;
+  description: string | null;
   sequence_order: number;
   is_breakpoint: boolean;
   cognitive_load_intensity: number | null;
@@ -195,6 +227,7 @@ export interface ProcessStep {
 
 export interface ProcessStepCreate {
   name: string;
+  description?: string | null;
   sequence_order: number;
   is_breakpoint?: boolean;
   cognitive_load_intensity?: number | null;
@@ -202,23 +235,10 @@ export interface ProcessStepCreate {
 
 export interface ProcessStepUpdate {
   name?: string;
+  description?: string | null;
   sequence_order?: number;
   is_breakpoint?: boolean;
   cognitive_load_intensity?: number | null;
-}
-
-export interface ProcessStepJTDLink {
-  id: string;
-  process_step_id: string;
-  jtd_type: "lived" | "cognitive";
-  jtd_id: string;
-  sequence_within_step: number;
-}
-
-export interface ProcessStepJTDLinkCreate {
-  jtd_type: "lived" | "cognitive";
-  jtd_id: string;
-  sequence_within_step: number;
 }
 
 export interface ClusterProcessStep {
@@ -230,7 +250,6 @@ export interface ClusterProcessStep {
 export interface ProcessFlow {
   use_case_id: string;
   steps: ProcessStep[];
-  jtd_links: ProcessStepJTDLink[];
   cluster_steps: ClusterProcessStep[];
 }
 

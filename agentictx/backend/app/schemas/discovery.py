@@ -42,9 +42,11 @@ class LivedJTDRead(BaseModel):
     use_case_id: uuid.UUID
     description: str
     system_context: str | None
-    cognitive_load_score: int | None
+    process_phase_id: uuid.UUID | None
     status: JTDStatus
     linked_cognitive_jtd_id: uuid.UUID | None
+    source_message_id: uuid.UUID | None = None
+    is_modified: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -54,15 +56,16 @@ class LivedJTDRead(BaseModel):
 class LivedJTDCreate(BaseModel):
     description: str = Field(..., min_length=1)
     system_context: str | None = None
-    cognitive_load_score: int | None = Field(None, ge=0, le=3)
+    process_phase_id: uuid.UUID | None = None
 
 
 class LivedJTDUpdate(BaseModel):
     description: str | None = Field(None, min_length=1)
     system_context: str | None = None
-    cognitive_load_score: int | None = Field(None, ge=0, le=3)
+    process_phase_id: uuid.UUID | None = None
     status: JTDStatus | None = None
     linked_cognitive_jtd_id: uuid.UUID | None = None
+    is_modified: bool | None = None
 
 
 # ─── Cognitive JTD ───────────────────────────────────────────────────────────
@@ -73,8 +76,11 @@ class CognitiveJTDRead(BaseModel):
     description: str
     cognitive_zone: str | None
     load_intensity: int | None
+    process_phase_id: uuid.UUID | None
     linked_lived_jtd_ids: list[str] | None
     status: JTDStatus
+    source_message_id: uuid.UUID | None = None
+    is_modified: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -85,14 +91,17 @@ class CognitiveJTDCreate(BaseModel):
     description: str = Field(..., min_length=1)
     cognitive_zone: str | None = None
     load_intensity: int | None = Field(None, ge=0, le=3)
+    process_phase_id: uuid.UUID | None = None
 
 
 class CognitiveJTDUpdate(BaseModel):
     description: str | None = Field(None, min_length=1)
     cognitive_zone: str | None = None
     load_intensity: int | None = Field(None, ge=0, le=3)
+    process_phase_id: uuid.UUID | None = None
     linked_lived_jtd_ids: list[str] | None = None
     status: JTDStatus | None = None
+    is_modified: bool | None = None
 
 
 # ─── Delegation Cluster ───────────────────────────────────────────────────────
@@ -102,21 +111,20 @@ class DelegationClusterRead(BaseModel):
     use_case_id: uuid.UUID
     name: str
     purpose: str | None
-    cognitive_jtd_ids: list[str]
-    lived_jtd_ids: list[str] | None
+    cognitive_jtd_ids: list[uuid.UUID]
+    lived_jtd_ids: list[uuid.UUID]
     suitability_scores: dict[str, int] | None
+    delegation_mode: str | None
     status: ClusterStatus
+    is_scored: bool
     created_at: datetime
     updated_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class DelegationClusterUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     purpose: str | None = None
-    cognitive_jtd_ids: list[str] | None = None
-    lived_jtd_ids: list[str] | None = None
+    delegation_mode: str | None = None
     status: ClusterStatus | None = None
 
 
@@ -162,6 +170,7 @@ class SuitabilityScores(BaseModel):
 
 class ProcessStepCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
+    description: str | None = None
     sequence_order: int = Field(..., ge=0)
     is_breakpoint: bool = False
     cognitive_load_intensity: int | None = Field(None, ge=0, le=3)
@@ -169,6 +178,7 @@ class ProcessStepCreate(BaseModel):
 
 class ProcessStepUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = None
     sequence_order: int | None = Field(None, ge=0)
     is_breakpoint: bool | None = None
     cognitive_load_intensity: int | None = Field(None, ge=0, le=3)
@@ -178,27 +188,12 @@ class ProcessStepRead(BaseModel):
     id: uuid.UUID
     use_case_id: uuid.UUID
     name: str
+    description: str | None
     sequence_order: int
     is_breakpoint: bool
     cognitive_load_intensity: int | None
     created_at: datetime
     updated_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class ProcessStepJTDLinkCreate(BaseModel):
-    jtd_type: str = Field(..., pattern="^(lived|cognitive)$")
-    jtd_id: uuid.UUID
-    sequence_within_step: int = Field(..., ge=0)
-
-
-class ProcessStepJTDLinkRead(BaseModel):
-    id: uuid.UUID
-    process_step_id: uuid.UUID
-    jtd_type: str
-    jtd_id: uuid.UUID
-    sequence_within_step: int
 
     model_config = {"from_attributes": True}
 
@@ -214,5 +209,4 @@ class ClusterProcessStepRead(BaseModel):
 class ProcessFlowRead(BaseModel):
     use_case_id: uuid.UUID
     steps: list[ProcessStepRead]
-    jtd_links: list[ProcessStepJTDLinkRead]
     cluster_steps: list[ClusterProcessStepRead]

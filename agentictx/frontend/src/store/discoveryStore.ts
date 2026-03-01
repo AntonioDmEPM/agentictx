@@ -5,6 +5,7 @@ import type {
   DelegationCluster,
   LivedJTD,
   ProcessFlow,
+  ProcessStep,
 } from "@/types/discovery";
 
 interface DiscoveryState {
@@ -21,8 +22,22 @@ interface DiscoveryState {
   // Process visualisation
   processFlow: ProcessFlow | null;
 
+  // Cluster column highlight (pulse animation)
+  clusterColumnHighlight: boolean;
+
+  // Clustering banner guard — true once the auto-prompt has fired, prevents re-fire
+  clusteringProposed: boolean;
+
+  // Scroll-to-message provenance navigation
+  scrollToMessageId: string | null;
+
+  // Cluster selection highlighting
+  selectedClusterId: string | null;
+  setSelectedClusterId: (id: string | null) => void;
+
   // Actions — conversation
   addChatMessage: (msg: ChatMessage) => void;
+  addSystemMessage: (text: string) => void;
   appendStreamDelta: (delta: string) => void;
   finaliseStreamingMessage: (messageId: string) => void;
   setIsStreaming: (v: boolean) => void;
@@ -39,9 +54,18 @@ interface DiscoveryState {
   addDelegationCluster: (cluster: DelegationCluster) => void;
   updateDelegationCluster: (cluster: DelegationCluster) => void;
   removeDelegationCluster: (id: string) => void;
+  markClustersReplaced: () => void;
+
+  // Cluster highlight & guard
+  setClusterColumnHighlight: (v: boolean) => void;
+  setClusteringProposed: (v: boolean) => void;
+
+  // Provenance scroll
+  setScrollToMessageId: (id: string | null) => void;
 
   // Process flow
   setProcessFlow: (flow: ProcessFlow | null) => void;
+  addProcessSteps: (steps: ProcessStep[]) => void;
 
   // Hydrate from full map API response
   hydrate: (data: {
@@ -63,6 +87,10 @@ const initialState = {
   cognitiveJTDs: [],
   delegationClusters: [],
   processFlow: null as ProcessFlow | null,
+  clusterColumnHighlight: false,
+  clusteringProposed: false,
+  scrollToMessageId: null as string | null,
+  selectedClusterId: null as string | null,
 };
 
 export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
@@ -72,6 +100,14 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
 
   addChatMessage: (msg) =>
     set((s) => ({ chatMessages: [...s.chatMessages, msg] })),
+
+  addSystemMessage: (text) =>
+    set((s) => ({
+      chatMessages: [
+        ...s.chatMessages,
+        { id: `system-${Date.now()}`, role: "system" as const, text },
+      ],
+    })),
 
   appendStreamDelta: (delta) =>
     set((s) => ({ streamingText: s.streamingText + delta })),
@@ -129,18 +165,61 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
     })),
 
   removeDelegationCluster: (id) =>
+    set((s) => {
+      const remaining = s.delegationClusters.filter((c) => c.id !== id);
+      const hasActive = remaining.some((c) => c.status !== "replaced");
+      return {
+        delegationClusters: remaining,
+        ...(hasActive ? {} : { clusteringProposed: false }),
+      };
+    }),
+
+  markClustersReplaced: () =>
     set((s) => ({
-      delegationClusters: s.delegationClusters.filter((c) => c.id !== id),
+      delegationClusters: s.delegationClusters.map((c) =>
+        c.status !== "replaced" ? { ...c, status: "replaced" as const } : c
+      ),
     })),
+
+  // ── Cluster Highlight & Provenance ────────────────────────────────────────
+
+  setClusterColumnHighlight: (v) => set({ clusterColumnHighlight: v }),
+
+  setClusteringProposed: (v) => set({ clusteringProposed: v }),
+
+  setScrollToMessageId: (id) => set({ scrollToMessageId: id }),
+
+  setSelectedClusterId: (id) => set({ selectedClusterId: id }),
 
   // ── Process Flow ──────────────────────────────────────────────────────────
 
   setProcessFlow: (flow) => set({ processFlow: flow }),
 
+  addProcessSteps: (steps) =>
+    set((s) => {
+      const flow = s.processFlow ?? {
+        use_case_id: "",
+        steps: [],
+        cluster_steps: [],
+      };
+      return {
+        processFlow: {
+          ...flow,
+          steps: [...flow.steps, ...steps],
+        },
+      };
+    }),
+
   // ── Hydrate ───────────────────────────────────────────────────────────────
 
   hydrate: ({ livedJTDs, cognitiveJTDs, delegationClusters, chatMessages }) =>
-    set({ livedJTDs, cognitiveJTDs, delegationClusters, chatMessages }),
+    set({
+      livedJTDs,
+      cognitiveJTDs,
+      delegationClusters,
+      chatMessages,
+      clusteringProposed: delegationClusters.some((c) => c.status !== "replaced"),
+    }),
 
   // ── Reset ─────────────────────────────────────────────────────────────────
 

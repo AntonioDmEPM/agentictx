@@ -13,8 +13,6 @@ import type {
   ProcessFlow,
   ProcessStep,
   ProcessStepCreate,
-  ProcessStepJTDLink,
-  ProcessStepJTDLinkCreate,
   ProcessStepUpdate,
   RawInput,
 } from "@/types/discovery";
@@ -99,6 +97,27 @@ export const discoveryApi = {
       {}
     ),
 
+  // ─── Cluster Membership Editing ─────────────────────────────────────────────
+  addClusterLivedJTD: (ucId: string, clusterId: string, jtdId: string) =>
+    client.put<DelegationCluster>(
+      `${BASE(ucId)}/clusters/${clusterId}/lived-jtds/${jtdId}`
+    ),
+
+  removeClusterLivedJTD: (ucId: string, clusterId: string, jtdId: string) =>
+    client.del<DelegationCluster>(
+      `${BASE(ucId)}/clusters/${clusterId}/lived-jtds/${jtdId}`
+    ),
+
+  addClusterCognitiveJTD: (ucId: string, clusterId: string, jtdId: string) =>
+    client.put<DelegationCluster>(
+      `${BASE(ucId)}/clusters/${clusterId}/cognitive-jtds/${jtdId}`
+    ),
+
+  removeClusterCognitiveJTD: (ucId: string, clusterId: string, jtdId: string) =>
+    client.del<DelegationCluster>(
+      `${BASE(ucId)}/clusters/${clusterId}/cognitive-jtds/${jtdId}`
+    ),
+
   // ─── Process Flow ─────────────────────────────────────────────────────────
   getProcessFlow: (ucId: string) =>
     client.get<ProcessFlow>(`${BASE(ucId)}/process-flow`),
@@ -117,15 +136,6 @@ export const discoveryApi = {
 
   deleteStep: (ucId: string, stepId: string) =>
     client.del(`${BASE(ucId)}/process-flow/steps/${stepId}`),
-
-  addJTDLink: (ucId: string, stepId: string, payload: ProcessStepJTDLinkCreate) =>
-    client.post<ProcessStepJTDLink, ProcessStepJTDLinkCreate>(
-      `${BASE(ucId)}/process-flow/steps/${stepId}/jtd-links`,
-      payload
-    ),
-
-  removeJTDLink: (ucId: string, stepId: string, linkId: string) =>
-    client.del(`${BASE(ucId)}/process-flow/steps/${stepId}/jtd-links/${linkId}`),
 
   assignStepToCluster: (ucId: string, clusterId: string, stepId: string) =>
     client.post<ClusterProcessStep, Record<string, never>>(
