@@ -118,6 +118,13 @@ export const discoveryApi = {
       `${BASE(ucId)}/clusters/${clusterId}/cognitive-jtds/${jtdId}`
     ),
 
+  // ─── System Messages ───────────────────────────────────────────────────────
+  saveSystemMessage: (ucId: string, text: string) =>
+    client.post<{ id: string; role: string; text: string }, { role: string; text: string }>(
+      `${BASE(ucId)}/messages`,
+      { role: "system", text }
+    ),
+
   // ─── Process Flow ─────────────────────────────────────────────────────────
   getProcessFlow: (ucId: string) =>
     client.get<ProcessFlow>(`${BASE(ucId)}/process-flow`),

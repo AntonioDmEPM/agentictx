@@ -195,6 +195,17 @@ export interface WSClustersReplaced {
   count: number;
 }
 
+export interface WSToolCallStarted {
+  type: "tool_call_started";
+  tool_name: string;
+}
+
+export interface WSToolCallCompleted {
+  type: "tool_call_completed";
+  tool_name: string;
+  summary: string;
+}
+
 export interface WSProcessPhasesProposed {
   type: "process_phases_proposed";
   phases: ProcessStep[];
@@ -209,7 +220,9 @@ export type WSServerEvent =
   | WSMessageComplete
   | WSError
   | WSSystemNotification
-  | WSClustersReplaced;
+  | WSClustersReplaced
+  | WSToolCallStarted
+  | WSToolCallCompleted;
 
 // ─── Process Visualisation ────────────────────────────────────────────────────
 

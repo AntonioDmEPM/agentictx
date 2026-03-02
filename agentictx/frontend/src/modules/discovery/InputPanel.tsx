@@ -249,6 +249,42 @@ function FileDropZone({
   );
 }
 
+// ─── Extraction activity strip ────────────────────────────────────────────────
+
+const FRIENDLY_TOOL_NAMES: Record<string, string> = {
+  propose_process_phases: "Identifying process phases",
+  propose_lived_jtds: "Extracting jobs to be done",
+  propose_cognitive_jtds: "Extracting cognitive load items",
+  propose_delegation_cluster: "Proposing delegation cluster",
+};
+
+function ActivityStrip({
+  items,
+}: {
+  items: Array<{ tool_name: string; status: "running" | "done"; summary?: string }>;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="mb-3 ml-7 space-y-1 font-ui text-xs" style={{ color: "var(--text-secondary)" }}>
+      {items.map((item, i) => (
+        <div key={`${item.tool_name}-${i}`} className="flex items-center gap-2">
+          {item.status === "running" ? (
+            <span className="inline-block animate-spin text-[10px]">&#x27F3;</span>
+          ) : (
+            <span style={{ color: "var(--accent-success)" }}>&#x2713;</span>
+          )}
+          <span>
+            {item.status === "done"
+              ? item.summary
+              : `${FRIENDLY_TOOL_NAMES[item.tool_name] || item.tool_name}...`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main InputPanel ──────────────────────────────────────────────────────────
 
 export function InputPanel({ useCaseId, sendMessage, notifyFileProcessed, onCollapse }: InputPanelProps) {
@@ -256,6 +292,7 @@ export function InputPanel({ useCaseId, sendMessage, notifyFileProcessed, onColl
     chatMessages, streamingText, isStreaming, addChatMessage,
     scrollToMessageId, setScrollToMessageId,
     clusteringProposed, setClusteringProposed,
+    activityItems,
   } = useDiscoveryStore();
 
   const [inputText, setInputText] = useState("");
@@ -365,6 +402,9 @@ To get started, describe the process in your own words, paste in interview notes
             }}
           />
         )}
+
+        {/* Extraction activity strip — shows tool call progress */}
+        <ActivityStrip items={activityItems} />
 
         <div ref={bottomRef} />
       </div>

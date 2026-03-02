@@ -253,9 +253,10 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
 
     if (gateReady && noClusters && !clusteringProposed && !prevAllConfirmedRef.current) {
       setClusteringProposed(true);
-      addSystemMessage(
-        `You have confirmed ${nonRejectedLived.length} task${nonRejectedLived.length !== 1 ? "s" : ""} and ${nonRejectedCognitive.length} cognitive load item${nonRejectedCognitive.length !== 1 ? "s" : ""}. I have enough material to propose delegation clusters. Shall I proceed?`
-      );
+      const text = `You have confirmed ${nonRejectedLived.length} task${nonRejectedLived.length !== 1 ? "s" : ""} and ${nonRejectedCognitive.length} cognitive load item${nonRejectedCognitive.length !== 1 ? "s" : ""}. I have enough material to propose delegation clusters. Shall I proceed?`;
+      addSystemMessage(text);
+      // Persist so it survives navigation
+      discoveryApi.saveSystemMessage(useCaseId, text).catch(console.error);
     }
     prevAllConfirmedRef.current = gateReady;
   }, [livedJTDs, cognitiveJTDs, activeClusters.length, clusteringProposed, addSystemMessage, setClusteringProposed]);

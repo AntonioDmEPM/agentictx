@@ -30,11 +30,22 @@ export function useDiscoveryWebSocket({
     addDelegationCluster,
     markClustersReplaced,
     setClusterColumnHighlight,
+    addActivityItem,
+    completeActivityItem,
+    clearActivityItems,
   } = useDiscoveryStore();
 
   const handleEvent = useCallback(
     (event: WSServerEvent) => {
       switch (event.type) {
+        case "tool_call_started":
+          addActivityItem(event.tool_name);
+          break;
+
+        case "tool_call_completed":
+          completeActivityItem(event.tool_name, event.summary);
+          break;
+
         case "text_delta":
           appendStreamDelta(event.delta);
           setIsStreaming(true);
@@ -58,6 +69,7 @@ export function useDiscoveryWebSocket({
 
         case "message_complete":
           finaliseStreamingMessage(event.message_id);
+          clearActivityItems();
           break;
 
         case "system_notification":
@@ -95,6 +107,9 @@ export function useDiscoveryWebSocket({
       addSystemMessage,
       finaliseStreamingMessage,
       addChatMessage,
+      addActivityItem,
+      completeActivityItem,
+      clearActivityItems,
     ]
   );
 

@@ -513,6 +513,34 @@ async def reset_discovery(
     return ResponseEnvelope(data=counts)
 
 
+# ─── Conversation Messages — persist client-side system messages ──────────────
+
+@router.post(
+    "/{uc_id}/messages",
+    response_model=ResponseEnvelope[dict],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_message(
+    uc_id: uuid.UUID,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    """Persist a client-side system message so it survives navigation."""
+    role_str = body.get("role", "system")
+    text = body.get("text", "")
+    if role_str != "system" or not text:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only system messages with text are accepted",
+        )
+    msg = await service.save_message(
+        db, uc_id, MessageRole.system,
+        [{"type": "text", "text": text}]
+    )
+    await db.commit()
+    return ResponseEnvelope(data={"id": str(msg.id), "role": "system", "text": text})
+
+
 # ─── WebSocket ────────────────────────────────────────────────────────────────
 
 # Per-use-case lock — prevents concurrent agent requests across WS connections
@@ -615,7 +643,10 @@ async def _process_agent_stream(
     ):
         event_type = event["type"]
 
-        if event_type == "text_delta":
+        if event_type == "tool_call_started":
+            await websocket.send_text(json.dumps(event))
+
+        elif event_type == "text_delta":
             await websocket.send_text(json.dumps(event))
 
         elif event_type == "lived_jtds_proposed":
@@ -633,6 +664,11 @@ async def _process_agent_stream(
                 saved_jtds.append(saved.model_dump(mode="json"))
             await db.commit()
             await websocket.send_text(json.dumps({"type": "lived_jtds_proposed", "jtds": saved_jtds}))
+            await websocket.send_text(json.dumps({
+                "type": "tool_call_completed",
+                "tool_name": "propose_lived_jtds",
+                "summary": f"{len(saved_jtds)} JTD{'s' if len(saved_jtds) != 1 else ''} added to cognitive map",
+            }))
 
         elif event_type == "cognitive_jtds_proposed":
             saved_jtds = []
@@ -650,6 +686,11 @@ async def _process_agent_stream(
                 saved_jtds.append(saved.model_dump(mode="json"))
             await db.commit()
             await websocket.send_text(json.dumps({"type": "cognitive_jtds_proposed", "jtds": saved_jtds}))
+            await websocket.send_text(json.dumps({
+                "type": "tool_call_completed",
+                "tool_name": "propose_cognitive_jtds",
+                "summary": f"{len(saved_jtds)} cognitive load item{'s' if len(saved_jtds) != 1 else ''} added",
+            }))
 
         elif event_type == "process_phases_proposed":
             saved_phases = []
@@ -667,6 +708,11 @@ async def _process_agent_stream(
             await websocket.send_text(
                 json.dumps({"type": "process_phases_proposed", "phases": saved_phases})
             )
+            await websocket.send_text(json.dumps({
+                "type": "tool_call_completed",
+                "tool_name": "propose_process_phases",
+                "summary": f"{len(saved_phases)} phase{'s' if len(saved_phases) != 1 else ''} established",
+            }))
 
         elif event_type == "cluster_proposed":
             # Mark existing clusters as replaced before creating the first new one
@@ -694,6 +740,11 @@ async def _process_agent_stream(
             await websocket.send_text(
                 json.dumps({"type": "cluster_proposed", "cluster": saved_cluster.model_dump(mode="json")})
             )
+            await websocket.send_text(json.dumps({
+                "type": "tool_call_completed",
+                "tool_name": "propose_delegation_cluster",
+                "summary": f"Cluster \"{saved_cluster.name}\" proposed",
+            }))
 
         elif event_type == "message_complete":
             full_assistant_content = event["full_content"]
@@ -722,11 +773,18 @@ async def _process_agent_stream(
             )
             # Send system notification if clusters were proposed
             if clusters_proposed_count > 0:
+                notification_text = f"{clusters_proposed_count} cluster{'s' if clusters_proposed_count != 1 else ''} proposed"
                 await websocket.send_text(json.dumps({
                     "type": "system_notification",
-                    "text": f"{clusters_proposed_count} cluster{'s' if clusters_proposed_count != 1 else ''} proposed",
+                    "text": notification_text,
                     "highlight": "clusters",
                 }))
+                # Persist system notification so it survives navigation
+                await service.save_message(
+                    db, uc_id, MessageRole.system,
+                    [{"type": "text", "text": notification_text}]
+                )
+                await db.commit()
 
         elif event_type == "error":
             await websocket.send_text(json.dumps(event))

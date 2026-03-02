@@ -31,6 +31,12 @@ interface DiscoveryState {
   // Scroll-to-message provenance navigation
   scrollToMessageId: string | null;
 
+  // Extraction activity strip
+  activityItems: Array<{ tool_name: string; status: "running" | "done"; summary?: string }>;
+  addActivityItem: (tool_name: string) => void;
+  completeActivityItem: (tool_name: string, summary: string) => void;
+  clearActivityItems: () => void;
+
   // Cluster selection highlighting
   selectedClusterId: string | null;
   setSelectedClusterId: (id: string | null) => void;
@@ -91,6 +97,7 @@ const initialState = {
   clusteringProposed: false,
   scrollToMessageId: null as string | null,
   selectedClusterId: null as string | null,
+  activityItems: [] as Array<{ tool_name: string; status: "running" | "done"; summary?: string }>,
 };
 
 export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
@@ -190,6 +197,30 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
   setScrollToMessageId: (id) => set({ scrollToMessageId: id }),
 
   setSelectedClusterId: (id) => set({ selectedClusterId: id }),
+
+  // ── Activity strip ─────────────────────────────────────────────────────────
+
+  addActivityItem: (tool_name) =>
+    set((s) => {
+      // No-op if already running with same tool_name
+      if (s.activityItems.some((i) => i.tool_name === tool_name && i.status === "running")) {
+        return s;
+      }
+      return { activityItems: [...s.activityItems, { tool_name, status: "running" as const }] };
+    }),
+
+  completeActivityItem: (tool_name, summary) =>
+    set((s) => {
+      const idx = s.activityItems.findIndex(
+        (i) => i.tool_name === tool_name && i.status === "running"
+      );
+      if (idx === -1) return s;
+      const updated = [...s.activityItems];
+      updated[idx] = { ...updated[idx], status: "done" as const, summary };
+      return { activityItems: updated };
+    }),
+
+  clearActivityItems: () => set({ activityItems: [] }),
 
   // ── Process Flow ──────────────────────────────────────────────────────────
 

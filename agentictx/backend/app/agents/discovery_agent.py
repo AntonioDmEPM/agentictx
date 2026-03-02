@@ -333,6 +333,7 @@ async def run_discovery_stream(
                                 "input": {},
                             }
                             current_tool_input_str = ""
+                            yield {"type": "tool_call_started", "tool_name": block.name}
 
                     elif event_type == "content_block_delta":
                         delta = event.delta

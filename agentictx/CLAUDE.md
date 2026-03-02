@@ -1038,7 +1038,7 @@ Proposed (agent-generated)
 
 **Confirm button must always be visible** on Proposed clusters — scoring never hides or replaces it.
 
-**Auto-score**: Scoring triggers automatically on every membership change (each checkbox toggle calls the server, which re-runs the suitability agent if `is_scored` is already `true`). The Score button is only shown for clusters that have never been scored (`is_scored=false`). Once scored, `is_scored` never reverts to `false` — all subsequent membership edits trigger automatic re-scoring server-side, and the updated scores are returned in the API response without any additional user action.
+**Auto-score**: Scoring triggers automatically when cluster membership is saved. There is no manual Score button after the initial view — score updates whenever membership changes.
 
 ### 14.12 Cluster Membership Editing
 
@@ -1046,7 +1046,7 @@ Every cluster card in the Extract view has an Edit button. Clicking Edit opens a
 - All confirmed JTDs — each with a checkbox showing whether it is in this cluster
 - All confirmed Cognitive Load items — each with a checkbox showing whether it is in this cluster
 
-Consultant can check/uncheck items freely. Each toggle immediately calls the server to update the link table; if the cluster has been scored (`is_scored=true`), the server automatically re-runs suitability scoring and returns the updated scores in the response. The Confirm button is always visible alongside the Edit and Score display.
+Consultant can check/uncheck items freely. Save triggers auto-score recalculation. The Confirm button is always visible alongside the Edit and Score display.
 
 ### 14.13 Cluster Selection Highlighting
 
@@ -1067,6 +1067,33 @@ Suitability score dimensions must display full labels — never truncated. All n
 - Below 1.0 → Human Only
 
 The consultant selects and confirms the delegation mode — a dropdown or button group showing the four options, with the recommended one pre-selected. Their confirmed selection flows into Agentic Design as the autonomy level.
+
+### 14.15 Real-Time Extraction Activity (Note 59)
+
+During Discovery Agent processing, tool calls happen silently with no user feedback. The consultant has no visibility that extraction is occurring and may think the system is stuck.
+
+**Backend**: When a tool call begins processing, emit `tool_call_started` WS event with tool name. When the tool call completes and records are saved, emit `tool_call_completed` with tool name and result summary string (e.g. "4 phases established", "6 JTDs added", "3 cognitive load items added").
+
+**Frontend**: Display a live activity strip below the last message in the conversation panel. Each event appends a line in small monospace text:
+```
+⟳ Identifying process phases...
+✓ 4 phases established
+⟳ Extracting jobs to be done...
+✓ 6 JTDs added to cognitive map
+⟳ Extracting cognitive load items...
+✓ 3 cognitive load items added
+```
+The activity strip is replaced by the agent's final text response when the turn completes. Cards must appear in the cognitive map columns in real time as each tool call completes — not all at once at the end of the turn.
+
+### 14.16 Conversation Persistence (Note 60)
+
+Conversation history and system/status messages disappear when the consultant navigates away from a use case and returns. The full conversation must be restored exactly as left on every use case load.
+
+**Fix**:
+- Store hydration must load all `conversation_messages` from the backend on every use case load, restoring them into the messages array in correct order
+- System messages (clustering prompts, "X clusters proposed" notifications) generated client-side must be persisted to the backend with `role: system` so they survive navigation
+- On hydration, system messages are restored alongside user and assistant messages
+- Verify end to end: navigate away mid-conversation, navigate back, full conversation is restored
 
 ---
 
