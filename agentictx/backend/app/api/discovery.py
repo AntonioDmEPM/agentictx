@@ -1140,11 +1140,16 @@ def _build_anthropic_history(
     result: list[dict] = []
 
     for msg in messages:
+        role = msg.role.value if hasattr(msg.role, "value") else msg.role
+
+        # System messages are UI-only status updates — skip them entirely.
+        # Anthropic Messages API only accepts "user" and "assistant" roles.
+        if role == "system":
+            continue
+
         content = msg.content
         if isinstance(content, str):
             content = [{"type": "text", "text": content}]
-
-        role = msg.role.value if hasattr(msg.role, "value") else msg.role
 
         # Strip all tool_use and tool_result blocks — they served their
         # purpose during the original stream and are not needed in history.
