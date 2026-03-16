@@ -568,14 +568,14 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
         onClick={() => selectedClusterId && setSelectedClusterId(null)}
       >
         <ColumnHeader
-          label="Tasks & Interactions"
+          label="Jobs To Be Done"
           subtitle="Physical tasks & system interactions"
           count={livedJTDs.filter((j) => j.status !== "rejected").length}
           accentColor="var(--jtd-lived)"
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
           {sortedLived.length === 0 && !creatingLived ? (
-            <EmptyColumn label="Tasks & Interactions" />
+            <EmptyColumn label="Jobs To Be Done" />
           ) : (
             <>
               <div className="flex flex-col gap-1">{confirmedLived.map(renderLivedCard)}</div>

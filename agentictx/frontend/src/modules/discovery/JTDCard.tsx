@@ -731,7 +731,7 @@ function MembershipEditPanel({
       {confirmedLivedJTDs.length > 0 && (
         <div>
           <p className="text-xs font-ui mb-1" style={{ color: "var(--jtd-lived)" }}>
-            Tasks & Interactions
+            Jobs To Be Done
           </p>
           {confirmedLivedJTDs.map((jtd) => {
             const isMember = livedMemberSet.has(jtd.id);
