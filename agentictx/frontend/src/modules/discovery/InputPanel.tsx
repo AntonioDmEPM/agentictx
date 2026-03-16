@@ -253,7 +253,7 @@ function FileDropZone({
 
 const FRIENDLY_TOOL_NAMES: Record<string, string> = {
   propose_process_phases: "Identifying process phases",
-  propose_lived_jtds: "Extracting jobs to be done",
+  propose_lived_jtds: "Extracting tasks & interactions",
   propose_cognitive_jtds: "Extracting cognitive load items",
   propose_delegation_cluster: "Proposing delegation cluster",
 };
