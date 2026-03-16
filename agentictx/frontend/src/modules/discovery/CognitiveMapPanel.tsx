@@ -8,13 +8,19 @@ interface CognitiveMapPanelProps {
   useCaseId: string;
 }
 
-// ─── Sort helper: confirmed first, proposed second, rejected last ────────────
+// ─── Sort helper: confirmed first, proposed newest-first, rejected last ──────
 
-function sortByStatus<T extends { status: string }>(items: T[]): T[] {
+function sortByStatus<T extends { status: string; created_at: string }>(items: T[]): T[] {
   const order: Record<string, number> = { confirmed: 0, proposed: 1, rejected: 2 };
-  return [...items].sort(
-    (a, b) => (order[a.status] ?? 1) - (order[b.status] ?? 1)
-  );
+  return [...items].sort((a, b) => {
+    const statusDiff = (order[a.status] ?? 1) - (order[b.status] ?? 1);
+    if (statusDiff !== 0) return statusDiff;
+    // Proposed: newest first so new agent-added cards appear at top of active section
+    if (a.status === "proposed") {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    return 0;
+  });
 }
 
 // ─── Column header ────────────────────────────────────────────────────────────
@@ -186,6 +192,13 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
 
   const sortedLived = useMemo(() => sortByStatus(livedJTDs), [livedJTDs]);
   const sortedCognitive = useMemo(() => sortByStatus(cognitiveJTDs), [cognitiveJTDs]);
+
+  const confirmedLived  = useMemo(() => sortedLived.filter((j: LivedJTD) => j.status === "confirmed"),  [sortedLived]);
+  const proposedLived   = useMemo(() => sortedLived.filter((j: LivedJTD) => j.status === "proposed"),   [sortedLived]);
+  const rejectedLived   = useMemo(() => sortedLived.filter((j: LivedJTD) => j.status === "rejected"),   [sortedLived]);
+  const confirmedCog    = useMemo(() => sortedCognitive.filter((j: CognitiveJTD) => j.status === "confirmed"), [sortedCognitive]);
+  const proposedCog     = useMemo(() => sortedCognitive.filter((j: CognitiveJTD) => j.status === "proposed"),  [sortedCognitive]);
+  const rejectedCog     = useMemo(() => sortedCognitive.filter((j: CognitiveJTD) => j.status === "rejected"),  [sortedCognitive]);
 
   // ── Confirmed items for membership editing ─────────────────────────────────
 
@@ -560,11 +573,21 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
           count={livedJTDs.filter((j) => j.status !== "rejected").length}
           accentColor="var(--jtd-lived)"
         />
-        <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
+        <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
           {sortedLived.length === 0 && !creatingLived ? (
             <EmptyColumn label="Tasks & Interactions" />
           ) : (
-            sortedLived.map(renderLivedCard)
+            <>
+              <div className="flex flex-col gap-1">{confirmedLived.map(renderLivedCard)}</div>
+              {confirmedLived.length > 0 && proposedLived.length > 0 && (
+                <hr style={{ borderColor: "var(--bg-border)", margin: "4px 0" }} />
+              )}
+              <div className="flex flex-col gap-2">{proposedLived.map(renderLivedCard)}</div>
+              {rejectedLived.length > 0 && (proposedLived.length > 0 || confirmedLived.length > 0) && (
+                <hr style={{ borderColor: "var(--bg-border)", margin: "4px 0" }} />
+              )}
+              <div className="flex flex-col gap-1">{rejectedLived.map(renderLivedCard)}</div>
+            </>
           )}
           {creatingLived && (
             <CreateJTDForm
@@ -592,11 +615,21 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
           count={cognitiveJTDs.filter((j) => j.status !== "rejected").length}
           accentColor="var(--jtd-cognitive)"
         />
-        <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
+        <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
           {sortedCognitive.length === 0 && !creatingCognitive ? (
             <EmptyColumn label="Cognitive Load" />
           ) : (
-            sortedCognitive.map(renderCognitiveCard)
+            <>
+              <div className="flex flex-col gap-1">{confirmedCog.map(renderCognitiveCard)}</div>
+              {confirmedCog.length > 0 && proposedCog.length > 0 && (
+                <hr style={{ borderColor: "var(--bg-border)", margin: "4px 0" }} />
+              )}
+              <div className="flex flex-col gap-2">{proposedCog.map(renderCognitiveCard)}</div>
+              {rejectedCog.length > 0 && (proposedCog.length > 0 || confirmedCog.length > 0) && (
+                <hr style={{ borderColor: "var(--bg-border)", margin: "4px 0" }} />
+              )}
+              <div className="flex flex-col gap-1">{rejectedCog.map(renderCognitiveCard)}</div>
+            </>
           )}
           {creatingCognitive && (
             <CreateJTDForm
