@@ -325,6 +325,49 @@ function ClampedDescription({
   );
 }
 
+// ─── Compact pill (confirmed / rejected) ─────────────────────────────────────
+
+function CompactPill({
+  status,
+  description,
+  phaseName,
+  dimmed,
+  onExpand,
+}: {
+  status: "confirmed" | "rejected";
+  description: string;
+  phaseName?: string | null;
+  dimmed?: boolean;
+  onExpand: () => void;
+}) {
+  const isConfirmed = status === "confirmed";
+  return (
+    <div
+      className="flex items-center gap-2 px-2 py-1 rounded-sm border bg-bg-surface cursor-pointer transition-opacity duration-150 overflow-hidden"
+      style={{
+        borderColor: isConfirmed ? "var(--accent-success)" : "var(--bg-border)",
+        borderLeftWidth: "3px",
+        borderLeftColor: isConfirmed ? "var(--accent-success)" : "var(--text-muted)",
+        opacity: dimmed ? 0.3 : isConfirmed ? 1 : 0.45,
+      }}
+      onClick={onExpand}
+      title={description}
+    >
+      <span className="shrink-0 text-xs font-ui" style={{ color: isConfirmed ? "var(--accent-success)" : "var(--text-muted)" }}>
+        {isConfirmed ? "✓" : "✗"}
+      </span>
+      <span className="flex-1 text-xs font-body truncate" style={{ color: isConfirmed ? "var(--text-secondary)" : "var(--text-muted)" }}>
+        {description}
+      </span>
+      {phaseName && (
+        <span className="shrink-0 text-xs font-ui text-text-muted truncate" style={{ maxWidth: "4rem" }}>
+          {phaseName}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ─── Lived JTD Card ───────────────────────────────────────────────────────────
 
 interface LivedJTDCardProps {
@@ -341,7 +384,21 @@ interface LivedJTDCardProps {
 
 export function LivedJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onReinstate, onUpdate, onDelete, onScrollToSource }: LivedJTDCardProps) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const isRejected = jtd.status === "rejected";
+  const isCompact = (jtd.status === "confirmed" || isRejected) && !expanded;
+
+  if (isCompact) {
+    return (
+      <CompactPill
+        status={jtd.status as "confirmed" | "rejected"}
+        description={jtd.description}
+        phaseName={phaseName}
+        dimmed={dimmed}
+        onExpand={() => setExpanded(true)}
+      />
+    );
+  }
 
   return (
     <CardShell
@@ -361,6 +418,13 @@ export function LivedJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onRe
           <StatusChip status={jtd.status} />
           <div className="flex items-center gap-1.5">
             <LoadDot score={null} accentColor="var(--jtd-lived)" />
+            <button
+              onClick={() => setExpanded(false)}
+              className="text-xs font-ui text-text-muted hover:text-text-secondary transition-colors"
+              title="Collapse"
+            >
+              ▲
+            </button>
             {isRejected ? (
               <ThreeDotMenu onReinstate={onReinstate} />
             ) : (
@@ -434,7 +498,21 @@ interface CognitiveJTDCardProps {
 
 export function CognitiveJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onReinstate, onUpdate, onDelete, onScrollToSource }: CognitiveJTDCardProps) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const isRejected = jtd.status === "rejected";
+  const isCompact = (jtd.status === "confirmed" || isRejected) && !expanded;
+
+  if (isCompact) {
+    return (
+      <CompactPill
+        status={jtd.status as "confirmed" | "rejected"}
+        description={jtd.description}
+        phaseName={phaseName}
+        dimmed={dimmed}
+        onExpand={() => setExpanded(true)}
+      />
+    );
+  }
 
   return (
     <CardShell
@@ -453,6 +531,13 @@ export function CognitiveJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, 
           <StatusChip status={jtd.status} />
           <div className="flex items-center gap-1.5">
             <LoadDot score={jtd.load_intensity} accentColor="var(--jtd-cognitive)" />
+            <button
+              onClick={() => setExpanded(false)}
+              className="text-xs font-ui text-text-muted hover:text-text-secondary transition-colors"
+              title="Collapse"
+            >
+              ▲
+            </button>
             {isRejected ? (
               <ThreeDotMenu onReinstate={onReinstate} />
             ) : (
