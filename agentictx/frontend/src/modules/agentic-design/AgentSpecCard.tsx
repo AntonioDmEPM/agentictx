@@ -60,7 +60,7 @@ function ComplianceChip({ cls }: { cls: string | undefined }) {
     "Minimal Risk": "var(--accent-success)",
     "Limited Risk": "var(--accent-amber)",
     "High Risk": "var(--accent-warm)",
-    "Prohibited": "#FF4444",
+    "Prohibited": "#c45d3e",
   };
   const color = colorMap[cls] ?? "var(--text-secondary)";
   return (

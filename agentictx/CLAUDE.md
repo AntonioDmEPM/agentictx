@@ -703,64 +703,75 @@ Structured, scannable markdown. Generated as secondary export alongside the visu
 
 ## 8. Design System
 
+> Visual identity derived from ThinkBeforeYouBuild.app (TBYB) — warm light mode, earth-tone palette,
+> editorial typography. Adapted for tool density while preserving the TBYB brand feel.
+
 ### 8.1 Color Palette
 
 ```css
---bg-primary:     #0A0B0F;
---bg-surface:     #12141A;
---bg-elevated:    #1A1D26;
---bg-border:      #252836;
+/* Backgrounds — warm light palette (TBYB-derived) */
+--bg-primary:     #f5f4f0;   /* Warm cream */
+--bg-surface:     #ffffff;   /* White */
+--bg-elevated:    #f9f8f5;   /* Warm white */
+--bg-border:      #e4e2dc;   /* Warm border */
 
---accent-primary: #4F7FFF;
---accent-warm:    #FF6B35;
---accent-success: #2DD4A0;
---accent-amber:   #F5A623;
+/* Accents — earth tones */
+--accent-primary: #4a6fa5;   /* Steel blue */
+--accent-warm:    #b07340;   /* Terracotta */
+--accent-success: #5a8a6a;   /* Deep green */
+--accent-amber:   #b07340;   /* Terracotta */
 
---text-primary:   #F0F2F8;
---text-secondary: #8B90A8;
---text-muted:     #4A5068;
+/* Text */
+--text-primary:   #1a1a2e;   /* Dark navy */
+--text-secondary: #666666;   /* Warm gray */
+--text-muted:     #999999;   /* Light warm gray */
 
-/* JTD Colors */
---jtd-lived:      #F5A623;   /* Amber — Tasks */
---jtd-cognitive:  #4F7FFF;   /* Blue — Reasoning */
---jtd-cluster:    #2DD4A0;   /* Mint — Clusters */
---jtd-agent:      #9B6FFF;   /* Purple — Agents */
+/* JTD Semantic Colors */
+--jtd-lived:      #b07340;   /* Terracotta — Tasks */
+--jtd-cognitive:  #4a6fa5;   /* Steel blue — Cognitive Load */
+--jtd-cluster:    #5a8a6a;   /* Deep green — Clusters */
+--jtd-agent:      #6b5b95;   /* Deep purple — Agents */
 
 /* Tool Build Status */
---tool-existing:  #6B7280;   /* Gray */
---tool-new:       #2DD4A0;   /* Green */
---tool-pending:   #F5A623;   /* Orange */
---tool-blocked:   #FF6B35;   /* Red */
+--tool-existing:  #8b8a85;   /* Warm gray */
+--tool-new:       #5a8a6a;   /* Deep green */
+--tool-pending:   #b07340;   /* Terracotta */
+--tool-blocked:   #c45d3e;   /* Muted red-orange */
 ```
 
 ### 8.2 Typography
 
 ```css
---font-display: 'DM Serif Display', Georgia, serif;
---font-ui:      'DM Mono', 'Fira Code', monospace;
---font-body:    'Inter', system-ui, sans-serif;
+--font-display: 'Instrument Serif', Georgia, serif;   /* Headings, logo */
+--font-ui:      'DM Mono', 'Fira Code', monospace;    /* Badges, technical content */
+--font-body:    'DM Sans', system-ui, sans-serif;      /* Body text, labels */
 ```
 
 ### 8.3 Layout
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  Top Bar: ATW | Active Engagement | Stage Progress       │
+│  Top Bar: Frosted glass, Instrument Serif logo           │
+│  ATW | Active Engagement | Stage Progress                │
 ├──────────┬───────────────────────────────────────────────┤
 │  Left    │  Main Canvas (context-dependent per module)   │
 │  Nav     │                                               │
-│          ├───────────────────────────────────────────────┤
+│  (white) ├───────────────────────────────────────────────┤
 │          │  Agent Conversation Strip (persistent)        │
 └──────────┴───────────────────────────────────────────────┘
 ```
 
+**Design philosophy**: Clean, text-forward, no gradients, no heavy shadows. Generous whitespace. White card surfaces with warm `#e4e2dc` borders. 10px default border-radius. Frosted glass nav (`backdrop-filter: blur(12px)`).
+
 ### 8.4 React Flow Configuration
 
-- Background: `--bg-primary` with subtle dot grid
-- Node border radius: 8px (rounded rectangle for agents)
+- Background: warm cream (`--bg-primary`) with subtle warm dot grid (`--bg-border`)
+- Node border radius: 10px (rounded rectangle, TBYB-consistent)
+- Node background: `--bg-elevated` (warm white) with `--bg-border` borders
+- Hover glow: `rgba(74, 111, 165, 0.25)` (steel blue, subtle)
 - Edge style: smooth bezier, `--bg-border` colour, 2px width
 - Edge labels: monospace font, small, token counts in token economics view
-- Controls: zoom in/out/fit, bottom left
+- Controls: warm light theme, bottom left
 - Mini map: disabled (canvas not large enough to need it)
 - Node drag: enabled (consultant can reposition)
 - Pan: enabled

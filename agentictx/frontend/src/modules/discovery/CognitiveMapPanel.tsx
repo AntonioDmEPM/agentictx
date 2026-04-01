@@ -74,7 +74,7 @@ function CreateJTDForm({
 
   return (
     <div
-      className="rounded-sm border bg-bg-surface overflow-hidden"
+      className="rounded-md border bg-bg-surface overflow-hidden"
       style={{ borderColor: "var(--bg-border)", borderLeftWidth: "3px", borderLeftColor: accentColor }}
     >
       <div className="px-3 py-2.5 flex flex-col gap-2">
@@ -568,14 +568,14 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
         onClick={() => selectedClusterId && setSelectedClusterId(null)}
       >
         <ColumnHeader
-          label="Jobs To Be Done"
+          label="Tasks & Interactions"
           subtitle="Physical tasks & system interactions"
           count={livedJTDs.filter((j) => j.status !== "rejected").length}
           accentColor="var(--jtd-lived)"
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
           {sortedLived.length === 0 && !creatingLived ? (
-            <EmptyColumn label="Jobs To Be Done" />
+            <EmptyColumn label="Tasks & Interactions" />
           ) : (
             <>
               <div className="flex flex-col gap-1">{confirmedLived.map(renderLivedCard)}</div>

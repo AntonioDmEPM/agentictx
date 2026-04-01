@@ -40,7 +40,7 @@ export function SnapGuidesOverlay({ lines }: Props) {
               top: 0,
               bottom: 0,
               width: 1,
-              background: "rgba(79, 127, 255, 0.8)",
+              background: "rgba(74, 111, 165, 0.8)",
               pointerEvents: "none",
             }}
           />
@@ -54,7 +54,7 @@ export function SnapGuidesOverlay({ lines }: Props) {
               left: 0,
               right: 0,
               height: 1,
-              background: "rgba(79, 127, 255, 0.8)",
+              background: "rgba(74, 111, 165, 0.8)",
               pointerEvents: "none",
             }}
           />

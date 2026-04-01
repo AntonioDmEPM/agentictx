@@ -41,7 +41,7 @@ export function ToolNode({ data }: { data: ToolNodeData }) {
           flexDirection: "column",
           gap: 5,
           position: "relative",
-          boxShadow: hovered ? "0 0 0 2px rgba(79, 127, 255, 0.3)" : undefined,
+          boxShadow: hovered ? "0 0 0 2px rgba(74, 111, 165, 0.25)" : undefined,
           transition: "box-shadow 0.15s ease",
         }}
       >

@@ -28,9 +28,9 @@ const CLUSTER_COLOURS = [
 function loadTint(intensity: number | null): string {
   if (intensity === null) return "transparent";
   if (intensity === 0) return "transparent";
-  if (intensity === 1) return "rgba(79,127,255,0.08)";
-  if (intensity === 2) return "rgba(245,166,35,0.12)";
-  return "rgba(255,107,53,0.15)";
+  if (intensity === 1) return "rgba(74,111,165,0.08)";
+  if (intensity === 2) return "rgba(176,115,64,0.12)";
+  return "rgba(196,93,62,0.15)";
 }
 
 // ─── Inline-rename input ──────────────────────────────────────────────────────

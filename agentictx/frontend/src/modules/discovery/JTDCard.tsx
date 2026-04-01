@@ -12,7 +12,7 @@ interface CardShellProps {
 function CardShell({ accentColor, borderColor, children }: CardShellProps) {
   return (
     <div
-      className="group relative rounded-sm border bg-bg-surface transition-all duration-150 overflow-hidden"
+      className="group relative rounded-md border bg-bg-surface transition-all duration-150 overflow-hidden"
       style={{
         borderColor,
         borderLeftWidth: "3px",
@@ -151,8 +151,8 @@ function ThreeDotMenu({
       </button>
       {open && (
         <div
-          className="absolute right-0 top-full mt-1 z-20 rounded-sm border bg-bg-elevated shadow-lg"
-          style={{ borderColor: "var(--bg-border)", minWidth: 100 }}
+          className="absolute right-0 top-full mt-1 z-20 rounded-md border bg-bg-surface"
+          style={{ borderColor: "var(--bg-border)", minWidth: 100, boxShadow: "0 2px 8px rgba(26,26,46,0.08)" }}
         >
           {onReinstate ? (
             <button
@@ -731,7 +731,7 @@ function MembershipEditPanel({
       {confirmedLivedJTDs.length > 0 && (
         <div>
           <p className="text-xs font-ui mb-1" style={{ color: "var(--jtd-lived)" }}>
-            Jobs To Be Done
+            Tasks & Interactions
           </p>
           {confirmedLivedJTDs.map((jtd) => {
             const isMember = livedMemberSet.has(jtd.id);
