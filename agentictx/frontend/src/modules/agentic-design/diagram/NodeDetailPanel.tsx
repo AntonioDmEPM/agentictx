@@ -202,7 +202,7 @@ export function NodeDetailPanel({
         display: "flex",
         flexDirection: "column",
         zIndex: 10,
-        boxShadow: "-4px 0 16px rgba(0,0,0,0.4)",
+        boxShadow: "-4px 0 16px rgba(26, 26, 46, 0.10)",
       }}
     >
       {/* Header */}

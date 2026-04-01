@@ -24,34 +24,73 @@ export function TopBar() {
 
   return (
     <header
-      className="flex items-center justify-between px-6 h-12 shrink-0 border-b border-bg-border bg-bg-surface"
-      style={{ borderBottom: "1px solid var(--bg-border)" }}
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 24px",
+        height: 48,
+        flexShrink: 0,
+        borderBottom: "1px solid var(--bg-border)",
+        background: "rgba(245, 244, 240, 0.92)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+      }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3">
-        <span className="font-display text-base text-text-primary tracking-tight">
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span
+          style={{
+            fontFamily: '"Instrument Serif", Georgia, serif',
+            fontSize: 17,
+            fontWeight: 400,
+            letterSpacing: "-0.5px",
+            color: "var(--text-primary)",
+          }}
+        >
           ATW
         </span>
-        <span className="text-bg-border text-lg font-light">|</span>
-        <span className="text-xs text-text-muted font-ui uppercase tracking-widest">
+        <span style={{ color: "var(--bg-border)", fontSize: 16, fontWeight: 300 }}>|</span>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: "var(--text-muted)",
+            fontFamily: '"DM Sans", system-ui, sans-serif',
+          }}
+        >
           Agentic Transformation Workbench
         </span>
       </div>
 
       {/* Active engagement + stage tabs */}
       {engagement && (
-        <div className="flex items-center gap-6">
-          <span className="text-sm text-text-secondary font-medium">
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text-primary)",
+              fontFamily: '"DM Sans", system-ui, sans-serif',
+            }}
+          >
             {engagement.client_name}
           </span>
-          <div className="flex items-center gap-1">
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {STAGES.map((stage, i) => {
               const isActive = stage.segment === currentSegment;
               const isClickable = !!useCaseId && !!stage.segment;
 
               return (
-                <div key={stage.label} className="flex items-center gap-1">
-                  {i > 0 && <div className="w-6 h-px bg-bg-border" />}
+                <div key={stage.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {i > 0 && (
+                    <div
+                      style={{ width: 20, height: 1, background: "var(--bg-border)" }}
+                    />
+                  )}
                   <button
                     disabled={!isClickable}
                     onClick={() => {
@@ -61,8 +100,13 @@ export function TopBar() {
                         );
                       }
                     }}
-                    className="text-xs font-ui px-2 py-0.5 border rounded-sm transition-colors"
                     style={{
+                      fontSize: 12,
+                      fontWeight: isActive ? 600 : 500,
+                      fontFamily: '"DM Sans", system-ui, sans-serif',
+                      padding: "3px 12px",
+                      border: "1px solid",
+                      borderRadius: 4,
                       borderColor: isActive
                         ? "var(--accent-primary)"
                         : "var(--bg-border)",
@@ -71,7 +115,11 @@ export function TopBar() {
                         : isClickable
                         ? "var(--text-secondary)"
                         : "var(--text-muted)",
+                      background: isActive
+                        ? "rgba(74, 111, 165, 0.06)"
+                        : "transparent",
                       cursor: isClickable ? "pointer" : "default",
+                      transition: "all 150ms ease",
                     }}
                   >
                     {stage.label}
@@ -84,7 +132,7 @@ export function TopBar() {
       )}
 
       {/* Right slot — reserved for future auth/user info */}
-      <div className="w-32" />
+      <div style={{ width: 128 }} />
     </header>
   );
 }

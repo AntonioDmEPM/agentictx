@@ -4,33 +4,33 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Backgrounds
-        "bg-primary": "#0A0B0F",
-        "bg-surface": "#12141A",
-        "bg-elevated": "#1A1D26",
-        "bg-border": "#252836",
+        // Backgrounds — TBYB light palette
+        "bg-primary": "#f5f4f0",   // warm cream
+        "bg-surface": "#ffffff",   // white
+        "bg-elevated": "#f9f8f5",  // warm white
+        "bg-border": "#e4e2dc",    // warm border
 
-        // Accents
-        "accent-primary": "#4F7FFF",
-        "accent-warm": "#FF6B35",
-        "accent-success": "#2DD4A0",
-        "accent-amber": "#F5A623",
+        // Accents — earth tones
+        "accent-primary": "#4a6fa5",  // steel blue
+        "accent-warm": "#b07340",     // terracotta
+        "accent-success": "#5a8a6a",  // deep green
+        "accent-amber": "#b07340",    // terracotta (same as warm)
 
         // Text
-        "text-primary": "#F0F2F8",
-        "text-secondary": "#8B90A8",
-        "text-muted": "#4A5068",
+        "text-primary": "#1a1a2e",    // dark navy
+        "text-secondary": "#666666",  // warm gray
+        "text-muted": "#999999",      // light warm gray
 
-        // JTD states
-        "jtd-lived": "#F5A623",
-        "jtd-cognitive": "#4F7FFF",
-        "jtd-cluster": "#2DD4A0",
-        "jtd-agent": "#9B6FFF",
+        // JTD states — warm semantic palette
+        "jtd-lived": "#b07340",    // terracotta — Tasks
+        "jtd-cognitive": "#4a6fa5", // steel blue — Cognitive Load
+        "jtd-cluster": "#5a8a6a",  // deep green — Clusters
+        "jtd-agent": "#6b5b95",    // deep purple — Agents
       },
       fontFamily: {
-        display: ['"DM Serif Display"', "Georgia", "serif"],
+        display: ['"Instrument Serif"', "Georgia", "serif"],
         ui: ['"DM Mono"', '"Fira Code"', "monospace"],
-        body: ["Inter", "system-ui", "sans-serif"],
+        body: ['"DM Sans"', "system-ui", "sans-serif"],
       },
       fontSize: {
         xs: ["11px", { lineHeight: "16px" }],
@@ -42,14 +42,14 @@ export default {
         "3xl": ["48px", { lineHeight: "56px" }],
       },
       borderRadius: {
-        DEFAULT: "2px",
-        sm: "2px",
-        md: "4px",
-        lg: "4px",
+        DEFAULT: "10px",
+        sm: "6px",
+        md: "10px",
+        lg: "12px",
         full: "9999px",
       },
       borderColor: {
-        DEFAULT: "#252836",
+        DEFAULT: "#e4e2dc",
       },
     },
   },

@@ -14,10 +14,10 @@ import type {
 const MAX_ITEMS_COLLAPSED = 5;
 const UNASSIGNED_KEY = "__unassigned__";
 
-const TINT_LOW = "rgba(45, 212, 160, 0.20)";
-const TINT_MED = "rgba(245, 166, 35, 0.20)";
-const TINT_HIGH = "rgba(255, 107, 53, 0.22)";
-const DROP_HIGHLIGHT = "rgba(79, 127, 255, 0.15)";
+const TINT_LOW = "rgba(90, 138, 106, 0.20)";
+const TINT_MED = "rgba(176, 115, 64, 0.20)";
+const TINT_HIGH = "rgba(196, 93, 62, 0.22)";
+const DROP_HIGHLIGHT = "rgba(74, 111, 165, 0.15)";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -493,7 +493,7 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
 
   const layers: { key: Layer; label: string; accent: string }[] = [
     { key: "cognitive", label: "Cognitive Load", accent: "var(--jtd-cognitive)" },
-    { key: "lived", label: "Jobs To Be Done", accent: "var(--jtd-lived)" },
+    { key: "lived", label: "Tasks & Interactions", accent: "var(--jtd-lived)" },
   ];
 
   return (
@@ -674,7 +674,7 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
                 style={{
                   gridColumnStart: band.startCol + 2,
                   gridColumnEnd: band.startCol + 2 + band.spanCols,
-                  background: "rgba(45, 212, 160, 0.08)",
+                  background: "rgba(90, 138, 106, 0.08)",
                   borderLeft: "3px solid var(--jtd-cluster)",
                   borderRadius: 4,
                   padding: "6px 10px",

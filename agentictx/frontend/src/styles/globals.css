@@ -4,30 +4,34 @@
 
 @layer base {
   :root {
-    --bg-primary: #0a0b0f;
-    --bg-surface: #12141a;
-    --bg-elevated: #1a1d26;
-    --bg-border: #252836;
+    /* Backgrounds — TBYB light palette */
+    --bg-primary: #f5f4f0;   /* warm cream */
+    --bg-surface: #ffffff;   /* white */
+    --bg-elevated: #f9f8f5;  /* warm white */
+    --bg-border: #e4e2dc;    /* warm border */
 
-    --accent-primary: #4f7fff;
-    --accent-warm: #ff6b35;
-    --accent-success: #2dd4a0;
-    --accent-amber: #f5a623;
+    /* Accents — earth tones */
+    --accent-primary: #4a6fa5;  /* steel blue */
+    --accent-warm: #b07340;     /* terracotta */
+    --accent-success: #5a8a6a;  /* deep green */
+    --accent-amber: #b07340;    /* terracotta */
 
-    --text-primary: #f0f2f8;
-    --text-secondary: #8b90a8;
-    --text-muted: #4a5068;
+    /* Text */
+    --text-primary: #1a1a2e;    /* dark navy */
+    --text-secondary: #666666;  /* warm gray */
+    --text-muted: #999999;      /* light warm gray */
 
-    --jtd-lived: #f5a623;
-    --jtd-cognitive: #4f7fff;
-    --jtd-cluster: #2dd4a0;
-    --jtd-agent: #9b6fff;
+    /* JTD semantic colors */
+    --jtd-lived: #b07340;    /* terracotta — Tasks */
+    --jtd-cognitive: #4a6fa5; /* steel blue — Cognitive Load */
+    --jtd-cluster: #5a8a6a;  /* deep green — Clusters */
+    --jtd-agent: #6b5b95;    /* deep purple — Agents */
 
-    /* Tool build status (Phase 5a — Agent Architecture Diagram) */
-    --tool-existing: #6b7280;
-    --tool-new: #2dd4a0;
-    --tool-pending: #f5a623;
-    --tool-blocked: #ff6b35;
+    /* Tool build status */
+    --tool-existing: #8b8a85;  /* warm gray */
+    --tool-new: #5a8a6a;       /* deep green */
+    --tool-pending: #b07340;   /* terracotta */
+    --tool-blocked: #c45d3e;   /* muted red-orange */
   }
 
   * {
@@ -45,14 +49,14 @@
   body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: "DM Sans", system-ui, sans-serif;
     font-size: 15px;
     line-height: 24px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Scrollbar */
+  /* Scrollbar — warm subtle */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -65,7 +69,7 @@
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: #c8c6c0;
   }
 }
 
@@ -74,61 +78,67 @@
   .badge {
     @apply inline-flex items-center px-2 py-0.5 text-xs font-ui font-medium;
     border: 1px solid currentColor;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   .badge-active {
-    @apply badge text-accent-success;
-    border-color: rgba(45, 212, 160, 0.3);
-    background: rgba(45, 212, 160, 0.08);
+    @apply badge;
+    color: #5a8a6a;
+    border-color: rgba(90, 138, 106, 0.3);
+    background: rgba(90, 138, 106, 0.08);
   }
 
   .badge-archived {
     @apply badge text-text-muted;
-    border-color: rgba(74, 80, 104, 0.3);
-    background: rgba(74, 80, 104, 0.08);
+    border-color: rgba(153, 153, 153, 0.3);
+    background: rgba(153, 153, 153, 0.08);
   }
 
   .badge-pending {
     @apply badge text-text-muted;
-    border-color: rgba(74, 80, 104, 0.3);
-    background: rgba(74, 80, 104, 0.08);
+    border-color: rgba(153, 153, 153, 0.3);
+    background: rgba(153, 153, 153, 0.08);
   }
 
   .badge-discovery {
-    @apply badge text-accent-amber;
-    border-color: rgba(245, 166, 35, 0.3);
-    background: rgba(245, 166, 35, 0.08);
+    @apply badge;
+    color: #b07340;
+    border-color: rgba(176, 115, 64, 0.3);
+    background: rgba(176, 115, 64, 0.08);
   }
 
   .badge-agentic_design {
-    @apply badge text-accent-primary;
-    border-color: rgba(79, 127, 255, 0.3);
-    background: rgba(79, 127, 255, 0.08);
+    @apply badge;
+    color: #4a6fa5;
+    border-color: rgba(74, 111, 165, 0.3);
+    background: rgba(74, 111, 165, 0.08);
   }
 
   .badge-business_case {
     @apply badge;
-    color: #9b6fff;
-    border-color: rgba(155, 111, 255, 0.3);
-    background: rgba(155, 111, 255, 0.08);
+    color: #6b5b95;
+    border-color: rgba(107, 91, 149, 0.3);
+    background: rgba(107, 91, 149, 0.08);
   }
 
   .badge-complete {
-    @apply badge text-accent-success;
-    border-color: rgba(45, 212, 160, 0.3);
-    background: rgba(45, 212, 160, 0.08);
+    @apply badge;
+    color: #5a8a6a;
+    border-color: rgba(90, 138, 106, 0.3);
+    background: rgba(90, 138, 106, 0.08);
   }
 
   /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-bg-primary bg-accent-primary;
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium;
+    color: #ffffff;
+    background: #4a6fa5;
     border: 1px solid transparent;
-    border-radius: 2px;
+    border-radius: 6px;
     transition: background 150ms ease;
   }
   .btn-primary:hover {
-    background: #6b96ff;
+    background: #3d5f8f;
   }
   .btn-primary:disabled {
     opacity: 0.4;
@@ -136,54 +146,59 @@
   }
 
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-secondary;
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium;
+    color: var(--text-secondary);
     border: 1px solid var(--bg-border);
-    border-radius: 2px;
+    border-radius: 6px;
     background: transparent;
     transition: border-color 150ms ease, color 150ms ease;
   }
   .btn-ghost:hover {
-    border-color: var(--text-muted);
+    border-color: #c0bdb6;
     color: var(--text-primary);
   }
 
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent-warm;
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    border-radius: 2px;
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium;
+    color: #b07340;
+    border: 1px solid rgba(176, 115, 64, 0.3);
+    border-radius: 6px;
     background: transparent;
     transition: border-color 150ms ease, background 150ms ease;
   }
   .btn-danger:hover {
-    border-color: var(--accent-warm);
-    background: rgba(255, 107, 53, 0.08);
+    border-color: #b07340;
+    background: rgba(176, 115, 64, 0.08);
   }
 
   /* Inputs */
   .input {
-    @apply w-full px-3 py-2 text-sm text-text-primary bg-bg-elevated;
+    @apply w-full px-3 py-2 text-sm;
+    color: var(--text-primary);
+    background: var(--bg-surface);
     border: 1px solid var(--bg-border);
-    border-radius: 2px;
+    border-radius: 6px;
     outline: none;
-    transition: border-color 150ms ease;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
   }
   .input::placeholder {
     color: var(--text-muted);
   }
   .input:focus {
     border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.12);
   }
 
   /* Cards / panels */
   .panel {
     @apply bg-bg-surface;
     border: 1px solid var(--bg-border);
-    border-radius: 2px;
+    border-radius: 10px;
   }
 }
 
-/* ── React Flow dark-theme overrides ──────────────────────────────────────── */
-/* Remove the default white node background/border so custom node styles show */
+/* ── React Flow light-theme overrides ────────────────────────────────────── */
+/* Remove default node background/border so custom node styles show */
 .react-flow__node {
   background: transparent !important;
   border: none !important;
@@ -194,6 +209,31 @@
 
 .react-flow__node.selected > * {
   outline: none !important;
+}
+
+/* React Flow controls — warm light theme */
+.react-flow__controls {
+  box-shadow: 0 1px 4px rgba(26, 26, 46, 0.08) !important;
+  border: 1px solid var(--bg-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background: var(--bg-surface) !important;
+  border-bottom: 1px solid var(--bg-border) !important;
+  color: var(--text-secondary) !important;
+}
+.react-flow__controls-button:hover {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+}
+
+/* React Flow edges — warm strokes */
+.react-flow__edge-path {
+  stroke: var(--bg-border) !important;
 }
 
 /* Ensure the viewport pane fills its container */
@@ -219,13 +259,13 @@
 /* ── Discovery: Cluster pulse animation ────────────────────────────────────── */
 @keyframes clusterPulse {
   0%, 100% { background-color: transparent; }
-  50% { background-color: rgba(45, 212, 160, 0.06); }
+  50% { background-color: rgba(90, 138, 106, 0.06); }
 }
 .cluster-pulse { animation: clusterPulse 600ms ease-in-out 3; }
 
 /* ── Discovery: Message highlight for provenance scroll ────────────────────── */
 @keyframes messageHighlight {
-  0% { background-color: rgba(79, 127, 255, 0.15); }
+  0% { background-color: rgba(74, 111, 165, 0.12); }
   100% { background-color: transparent; }
 }
 .message-highlight { animation: messageHighlight 1.5s ease-out; }

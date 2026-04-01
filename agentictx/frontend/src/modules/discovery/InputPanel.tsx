@@ -69,7 +69,7 @@ function SystemMessageBanner({
               style={{
                 color: disabled ? "var(--text-muted)" : "var(--accent-success)",
                 borderColor: disabled ? "var(--bg-border)" : "var(--accent-success)",
-                background: disabled ? "transparent" : "rgba(45, 212, 160, 0.08)",
+                background: disabled ? "transparent" : "rgba(90, 138, 106, 0.08)",
                 cursor: disabled ? "not-allowed" : "pointer",
               }}
             >
@@ -253,7 +253,7 @@ function FileDropZone({
 
 const FRIENDLY_TOOL_NAMES: Record<string, string> = {
   propose_process_phases: "Identifying process phases",
-  propose_lived_jtds: "Extracting jobs to be done",
+  propose_lived_jtds: "Extracting tasks & interactions",
   propose_cognitive_jtds: "Extracting cognitive load items",
   propose_delegation_cluster: "Proposing delegation cluster",
 };

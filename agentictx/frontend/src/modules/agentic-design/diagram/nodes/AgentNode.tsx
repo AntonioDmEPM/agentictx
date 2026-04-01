@@ -147,7 +147,7 @@ export function AgentNode({ data }: { data: AgentNodeData }) {
           flexDirection: "column",
           gap: 8,
           position: "relative",
-          boxShadow: hovered ? "0 0 0 3px rgba(79, 127, 255, 0.3)" : undefined,
+          boxShadow: hovered ? "0 0 0 3px rgba(74, 111, 165, 0.25)" : undefined,
           transition: "box-shadow 0.15s ease",
         }}
       >
