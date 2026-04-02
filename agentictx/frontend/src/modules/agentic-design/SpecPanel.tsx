@@ -103,7 +103,7 @@ export function SpecPanel({ useCaseId, clusters, onViewDiagram, onCollapse }: Sp
       {/* Cluster chips — context for consultant */}
       {clusters.length > 0 && (
         <div className="px-5 py-2.5 border-b border-bg-border shrink-0">
-          <p className="text-xs font-ui text-text-muted mb-2">Delegation clusters in scope</p>
+          <p className="text-xs font-ui text-text-muted mb-2">Agent scopes in scope</p>
           <div className="flex flex-wrap gap-2">
             {clusters.map((cluster) => {
               const hasSpec = agentSpecs.some(
@@ -137,7 +137,7 @@ export function SpecPanel({ useCaseId, clusters, onViewDiagram, onCollapse }: Sp
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <p className="text-text-muted text-sm font-ui mb-2">No agent specifications yet</p>
             <p className="text-text-muted text-xs font-body max-w-xs leading-relaxed">
-              Use the conversation on the left to discuss a delegation cluster. The agent will
+              Use the conversation on the left to discuss an agent scope. The agent will
               propose a specification once enough information has been gathered.
             </p>
           </div>

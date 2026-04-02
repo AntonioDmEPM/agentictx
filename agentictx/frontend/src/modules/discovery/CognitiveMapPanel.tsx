@@ -266,7 +266,7 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
 
     if (gateReady && noClusters && !clusteringProposed && !prevAllConfirmedRef.current) {
       setClusteringProposed(true);
-      const text = `You have confirmed ${nonRejectedLived.length} task${nonRejectedLived.length !== 1 ? "s" : ""} and ${nonRejectedCognitive.length} cognitive load item${nonRejectedCognitive.length !== 1 ? "s" : ""}. I have enough material to propose delegation clusters. Shall I proceed?`;
+      const text = `You have confirmed ${nonRejectedLived.length} activit${nonRejectedLived.length !== 1 ? "ies" : "y"} and ${nonRejectedCognitive.length} cognitive load item${nonRejectedCognitive.length !== 1 ? "s" : ""}. I have enough material to propose agent scopes. Shall I proceed?`;
       addSystemMessage(text);
       // Persist so it survives navigation
       discoveryApi.saveSystemMessage(useCaseId, text).catch(console.error);
@@ -568,14 +568,14 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
         onClick={() => selectedClusterId && setSelectedClusterId(null)}
       >
         <ColumnHeader
-          label="Tasks & Interactions"
-          subtitle="Physical tasks & system interactions"
+          label="Activities"
+          subtitle="What people do — actions, decisions, system interactions"
           count={livedJTDs.filter((j) => j.status !== "rejected").length}
           accentColor="var(--jtd-lived)"
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
           {sortedLived.length === 0 && !creatingLived ? (
-            <EmptyColumn label="Tasks & Interactions" />
+            <EmptyColumn label="Activities" />
           ) : (
             <>
               <div className="flex flex-col gap-1">{confirmedLived.map(renderLivedCard)}</div>
@@ -651,14 +651,14 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
         style={{ minWidth: 0 }}
       >
         <ColumnHeader
-          label="Clusters"
-          subtitle="Delegation units for agent design"
+          label="Agent Scopes"
+          subtitle="Scoped work for each agent"
           count={activeClusters.length}
           accentColor="var(--jtd-cluster)"
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
           {activeClusters.length === 0 && replacedClusters.length === 0 ? (
-            <EmptyColumn label="Delegation clusters" />
+            <EmptyColumn label="Agent Scopes" />
           ) : (
             <>
               {activeClusters.map(renderClusterCard)}

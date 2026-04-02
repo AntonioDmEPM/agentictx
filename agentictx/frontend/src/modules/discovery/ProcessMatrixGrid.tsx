@@ -493,7 +493,7 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
 
   const layers: { key: Layer; label: string; accent: string }[] = [
     { key: "cognitive", label: "Cognitive Load", accent: "var(--jtd-cognitive)" },
-    { key: "lived", label: "Tasks & Interactions", accent: "var(--jtd-lived)" },
+    { key: "lived", label: "Activities", accent: "var(--jtd-lived)" },
   ];
 
   return (
@@ -658,7 +658,7 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
               marginBottom: 8,
             }}
           >
-            Delegation Clusters
+            Agent Scopes
           </div>
 
           <div

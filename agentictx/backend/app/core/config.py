@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     log_level: str = "INFO"
     api_secret_key: str = "change-me-in-production"
-    cors_origins: List[str] = ["http://localhost:5173"]
+    cors_origins: List[str] = ["http://localhost:5173", "http://localhost:5180"]
 
     # Database
     database_url: str = "postgresql+asyncpg://atw:atw_dev_password@db:5432/atw_db"

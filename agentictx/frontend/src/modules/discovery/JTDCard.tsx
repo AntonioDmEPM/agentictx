@@ -641,7 +641,7 @@ function SuitabilityBar({
   return (
     <div className="flex flex-col gap-1.5 mt-1">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-ui text-text-secondary">Suitability</span>
+        <span className="text-xs font-ui text-text-secondary">Readiness</span>
         <span className="text-xs font-ui" style={{ color: "var(--jtd-cluster)" }}>
           {avg.toFixed(1)}/3
         </span>
@@ -674,7 +674,7 @@ function SuitabilityBar({
       {/* Delegation mode recommendation */}
       <div className="mt-2 pt-2 border-t" style={{ borderColor: "var(--bg-border)" }}>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-ui text-text-secondary">Delegation Mode</span>
+          <span className="text-xs font-ui text-text-secondary">Autonomy Level</span>
           <span
             className="text-xs font-ui"
             style={{ color: recommended.color }}
@@ -731,7 +731,7 @@ function MembershipEditPanel({
       {confirmedLivedJTDs.length > 0 && (
         <div>
           <p className="text-xs font-ui mb-1" style={{ color: "var(--jtd-lived)" }}>
-            Tasks & Interactions
+            Activities
           </p>
           {confirmedLivedJTDs.map((jtd) => {
             const isMember = livedMemberSet.has(jtd.id);
