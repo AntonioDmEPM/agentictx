@@ -1,16 +1,20 @@
-// ─── Enums (mirror Python models exactly) ─────────────────────────────────────
+// ─── Enums ──────────────────────────────────────────────────────────────────
 
 export type RawInputType = "transcript" | "document" | "image" | "note";
 
-export type JTDStatus = "proposed" | "confirmed" | "rejected";
+export type ActivityStatus = "proposed" | "confirmed" | "rejected";
 
-export type ClusterStatus = "proposed" | "confirmed" | "replaced";
+export type ScopeStatus = "proposed" | "confirmed" | "replaced";
 
 export type MessageRole = "user" | "assistant" | "system";
 
-// ─── Raw Input ────────────────────────────────────────────────────────────────
+// Backward compatibility aliases
+export type JTDStatus = ActivityStatus;
+export type ClusterStatus = ScopeStatus;
 
-export interface RawInput {
+// ─── Source Material ─────────────────────────────────────────────────────────
+
+export interface SourceMaterial {
   id: string;
   use_case_id: string;
   type: RawInputType;
@@ -21,6 +25,9 @@ export interface RawInput {
   processed: boolean;
   created_at: string;
 }
+
+// Backward compatibility alias
+export type RawInput = SourceMaterial;
 
 // ─── Conversation Message ─────────────────────────────────────────────────────
 
@@ -38,15 +45,15 @@ export type AnthropicContentBlock =
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
   | { type: "tool_result"; tool_use_id: string; content: unknown };
 
-// ─── Lived JTD ───────────────────────────────────────────────────────────────
+// ─── Activity (formerly LivedJTD) ───────────────────────────────────────────
 
-export interface LivedJTD {
+export interface Activity {
   id: string;
   use_case_id: string;
   description: string;
   system_context: string | null;
   process_phase_id: string | null;
-  status: JTDStatus;
+  status: ActivityStatus;
   linked_cognitive_jtd_id: string | null;
   source_message_id: string | null;
   is_modified: boolean;
@@ -54,24 +61,29 @@ export interface LivedJTD {
   updated_at: string;
 }
 
-export interface LivedJTDCreate {
+export interface ActivityCreate {
   description: string;
   system_context?: string | null;
   process_phase_id?: string | null;
 }
 
-export interface LivedJTDUpdate {
+export interface ActivityUpdate {
   description?: string;
   system_context?: string | null;
   process_phase_id?: string | null;
-  status?: JTDStatus;
+  status?: ActivityStatus;
   linked_cognitive_jtd_id?: string | null;
   is_modified?: boolean;
 }
 
-// ─── Cognitive JTD ───────────────────────────────────────────────────────────
+// Backward compatibility aliases
+export type LivedJTD = Activity;
+export type LivedJTDCreate = ActivityCreate;
+export type LivedJTDUpdate = ActivityUpdate;
 
-export interface CognitiveJTD {
+// ─── Cognitive Load (formerly CognitiveJTD) ─────────────────────────────────
+
+export interface CognitiveLoad {
   id: string;
   use_case_id: string;
   description: string;
@@ -79,33 +91,38 @@ export interface CognitiveJTD {
   load_intensity: number | null;
   process_phase_id: string | null;
   linked_lived_jtd_ids: string[] | null;
-  status: JTDStatus;
+  status: ActivityStatus;
   source_message_id: string | null;
   is_modified: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export interface CognitiveJTDCreate {
+export interface CognitiveLoadCreate {
   description: string;
   cognitive_zone?: string | null;
   load_intensity?: number | null;
   process_phase_id?: string | null;
 }
 
-export interface CognitiveJTDUpdate {
+export interface CognitiveLoadUpdate {
   description?: string;
   cognitive_zone?: string | null;
   load_intensity?: number | null;
   process_phase_id?: string | null;
   linked_lived_jtd_ids?: string[] | null;
-  status?: JTDStatus;
+  status?: ActivityStatus;
   is_modified?: boolean;
 }
 
-// ─── Delegation Cluster ───────────────────────────────────────────────────────
+// Backward compatibility aliases
+export type CognitiveJTD = CognitiveLoad;
+export type CognitiveJTDCreate = CognitiveLoadCreate;
+export type CognitiveJTDUpdate = CognitiveLoadUpdate;
 
-export interface SuitabilityScores {
+// ─── Agent Scope (formerly DelegationCluster) ───────────────────────────────
+
+export interface ReadinessScores {
   cognitive_load_intensity: number;
   input_data_structure: number;
   actionability_tool_coverage: number;
@@ -117,39 +134,44 @@ export interface SuitabilityScores {
   latency_constraints: number;
 }
 
-export interface DelegationCluster {
+export interface AgentScope {
   id: string;
   use_case_id: string;
   name: string;
   purpose: string | null;
   cognitive_jtd_ids: string[];
   lived_jtd_ids: string[] | null;
-  suitability_scores: SuitabilityScores | null;
+  suitability_scores: ReadinessScores | null;
   delegation_mode: string | null;
-  status: ClusterStatus;
+  status: ScopeStatus;
   is_scored: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export interface DelegationClusterUpdate {
+export interface AgentScopeUpdate {
   name?: string;
   purpose?: string | null;
   cognitive_jtd_ids?: string[];
   lived_jtd_ids?: string[] | null;
   delegation_mode?: string | null;
-  status?: ClusterStatus;
+  status?: ScopeStatus;
 }
+
+// Backward compatibility aliases
+export type SuitabilityScores = ReadinessScores;
+export type DelegationCluster = AgentScope;
+export type DelegationClusterUpdate = AgentScopeUpdate;
 
 // ─── Cognitive Map ────────────────────────────────────────────────────────────
 
 export interface CognitiveMap {
   use_case_id: string;
-  raw_inputs: RawInput[];
+  raw_inputs: SourceMaterial[];
   conversation_messages: ConversationMessage[];
-  lived_jtds: LivedJTD[];
-  cognitive_jtds: CognitiveJTD[];
-  delegation_clusters: DelegationCluster[];
+  lived_jtds: Activity[];
+  cognitive_jtds: CognitiveLoad[];
+  delegation_clusters: AgentScope[];
 }
 
 // ─── WebSocket Event Types ────────────────────────────────────────────────────
@@ -159,19 +181,19 @@ export interface WSTextDelta {
   delta: string;
 }
 
-export interface WSLivedJTDsProposed {
+export interface WSActivitiesProposed {
   type: "lived_jtds_proposed";
-  jtds: LivedJTD[];
+  jtds: Activity[];
 }
 
-export interface WSCognitiveJTDsProposed {
+export interface WSCognitiveLoadProposed {
   type: "cognitive_jtds_proposed";
-  jtds: CognitiveJTD[];
+  jtds: CognitiveLoad[];
 }
 
-export interface WSClusterProposed {
+export interface WSAgentScopeProposed {
   type: "cluster_proposed";
-  cluster: DelegationCluster;
+  cluster: AgentScope;
 }
 
 export interface WSMessageComplete {
@@ -190,7 +212,7 @@ export interface WSSystemNotification {
   highlight?: string;
 }
 
-export interface WSClustersReplaced {
+export interface WSScopesReplaced {
   type: "clusters_replaced";
   count: number;
 }
@@ -208,25 +230,31 @@ export interface WSToolCallCompleted {
 
 export interface WSProcessPhasesProposed {
   type: "process_phases_proposed";
-  phases: ProcessStep[];
+  phases: Phase[];
 }
 
 export type WSServerEvent =
   | WSTextDelta
-  | WSLivedJTDsProposed
-  | WSCognitiveJTDsProposed
+  | WSActivitiesProposed
+  | WSCognitiveLoadProposed
   | WSProcessPhasesProposed
-  | WSClusterProposed
+  | WSAgentScopeProposed
   | WSMessageComplete
   | WSError
   | WSSystemNotification
-  | WSClustersReplaced
+  | WSScopesReplaced
   | WSToolCallStarted
   | WSToolCallCompleted;
 
-// ─── Process Visualisation ────────────────────────────────────────────────────
+// Backward compatibility aliases for WS events
+export type WSLivedJTDsProposed = WSActivitiesProposed;
+export type WSCognitiveJTDsProposed = WSCognitiveLoadProposed;
+export type WSClusterProposed = WSAgentScopeProposed;
+export type WSClustersReplaced = WSScopesReplaced;
 
-export interface ProcessStep {
+// ─── Phase (formerly ProcessStep) ───────────────────────────────────────────
+
+export interface Phase {
   id: string;
   use_case_id: string;
   name: string;
@@ -238,7 +266,7 @@ export interface ProcessStep {
   updated_at: string;
 }
 
-export interface ProcessStepCreate {
+export interface PhaseCreate {
   name: string;
   description?: string | null;
   sequence_order: number;
@@ -246,7 +274,7 @@ export interface ProcessStepCreate {
   cognitive_load_intensity?: number | null;
 }
 
-export interface ProcessStepUpdate {
+export interface PhaseUpdate {
   name?: string;
   description?: string | null;
   sequence_order?: number;
@@ -254,16 +282,24 @@ export interface ProcessStepUpdate {
   cognitive_load_intensity?: number | null;
 }
 
-export interface ClusterProcessStep {
+// Backward compatibility aliases
+export type ProcessStep = Phase;
+export type ProcessStepCreate = PhaseCreate;
+export type ProcessStepUpdate = PhaseUpdate;
+
+export interface ScopePhaseLink {
   id: string;
   cluster_id: string;
   process_step_id: string;
 }
 
+// Backward compatibility alias
+export type ClusterProcessStep = ScopePhaseLink;
+
 export interface ProcessFlow {
   use_case_id: string;
-  steps: ProcessStep[];
-  cluster_steps: ClusterProcessStep[];
+  steps: Phase[];
+  cluster_steps: ScopePhaseLink[];
 }
 
 // ─── UI-only types ─────────────────────────────────────────────────────────────
