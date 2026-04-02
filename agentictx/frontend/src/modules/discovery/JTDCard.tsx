@@ -885,7 +885,7 @@ export function DelegationClusterCard({
           {cluster.cognitive_jtd_ids.length} Cognitive Load item
           {cluster.cognitive_jtd_ids.length !== 1 ? "s" : ""}
           {cluster.lived_jtd_ids?.length
-            ? ` · ${cluster.lived_jtd_ids.length} JTD${cluster.lived_jtd_ids.length !== 1 ? "s" : ""}`
+            ? ` · ${cluster.lived_jtd_ids.length} activit${cluster.lived_jtd_ids.length !== 1 ? "ies" : "y"}`
             : ""}
         </p>
 
