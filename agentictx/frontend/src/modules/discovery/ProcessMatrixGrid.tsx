@@ -2,11 +2,11 @@ import { useState, useMemo, useCallback, type DragEvent } from "react";
 import { useDiscoveryStore } from "@/store/discoveryStore";
 import { discoveryApi } from "@/api/discovery";
 import type {
-  LivedJTD,
-  CognitiveJTD,
-  ProcessStep,
-  ClusterProcessStep,
-  DelegationCluster,
+  Activity,
+  AgentScope,
+  CognitiveLoad,
+  Phase,
+  ScopePhaseLink,
 } from "@/types/discovery";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -54,17 +54,17 @@ interface DragPayload {
   jtdType: "lived" | "cognitive";
 }
 
-const DRAG_MIME = "application/x-jtd-assign";
+const DRAG_MIME = "application/x-activity-assign";
 
 // ─── Build cell lookup ────────────────────────────────────────────────────────
 
 function buildCellMap(
-  steps: ProcessStep[],
-  livedJTDs: LivedJTD[],
-  cognitiveJTDs: CognitiveJTD[]
+  steps: Phase[],
+  activities: Activity[],
+  cognitiveLoadItems: CognitiveLoad[]
 ): Map<CellKey, CellItem[]> {
-  const confirmedLived = livedJTDs.filter((j) => j.status === "confirmed");
-  const confirmedCognitive = cognitiveJTDs.filter((j) => j.status === "confirmed");
+  const confirmedActivities = activities.filter((j) => j.status === "confirmed");
+  const confirmedCognitive = cognitiveLoadItems.filter((j) => j.status === "confirmed");
 
   const cellMap = new Map<CellKey, CellItem[]>();
 
@@ -76,28 +76,28 @@ function buildCellMap(
   cellMap.set(`${UNASSIGNED_KEY}-cognitive`, []);
   cellMap.set(`${UNASSIGNED_KEY}-lived`, []);
 
-  for (const jtd of confirmedLived) {
-    const phaseId = jtd.process_phase_id;
+  for (const act of confirmedActivities) {
+    const phaseId = act.process_phase_id;
     const key: CellKey = phaseId && stepIds.has(phaseId)
       ? `${phaseId}-lived`
       : `${UNASSIGNED_KEY}-lived`;
     cellMap.get(key)!.push({
-      id: jtd.id,
-      description: jtd.description,
+      id: act.id,
+      description: act.description,
       score: null,
       jtdType: "lived",
     });
   }
 
-  for (const jtd of confirmedCognitive) {
-    const phaseId = jtd.process_phase_id;
+  for (const clItem of confirmedCognitive) {
+    const phaseId = clItem.process_phase_id;
     const key: CellKey = phaseId && stepIds.has(phaseId)
       ? `${phaseId}-cognitive`
       : `${UNASSIGNED_KEY}-cognitive`;
     cellMap.get(key)!.push({
-      id: jtd.id,
-      description: jtd.description,
-      score: jtd.load_intensity,
+      id: clItem.id,
+      description: clItem.description,
+      score: clItem.load_intensity,
       jtdType: "cognitive",
     });
   }
@@ -107,28 +107,28 @@ function buildCellMap(
 
 // ─── Build cluster spans ──────────────────────────────────────────────────────
 
-interface ClusterBand {
-  cluster: DelegationCluster;
+interface ScopeBand {
+  scope: AgentScope;
   startCol: number;
   spanCols: number;
 }
 
-function buildClusterBands(
-  clusters: DelegationCluster[],
-  clusterSteps: ClusterProcessStep[],
+function buildScopeBands(
+  scopes: AgentScope[],
+  scopePhaseLinks: ScopePhaseLink[],
   orderedStepIds: string[]
-): ClusterBand[] {
+): ScopeBand[] {
   const stepIndexMap = new Map(orderedStepIds.map((id, i) => [id, i]));
-  const bands: ClusterBand[] = [];
+  const bands: ScopeBand[] = [];
 
-  for (const cluster of clusters) {
-    if (cluster.status === "replaced") continue;
+  for (const scope of scopes) {
+    if (scope.status === "replaced") continue;
 
-    const stepIdsForCluster = clusterSteps
-      .filter((cs) => cs.cluster_id === cluster.id)
+    const stepIdsForScope = scopePhaseLinks
+      .filter((cs) => cs.cluster_id === scope.id)
       .map((cs) => cs.process_step_id);
 
-    const indices = stepIdsForCluster
+    const indices = stepIdsForScope
       .map((id) => stepIndexMap.get(id))
       .filter((i): i is number => i !== undefined);
 
@@ -136,7 +136,7 @@ function buildClusterBands(
 
     const min = Math.min(...indices);
     const max = Math.max(...indices);
-    bands.push({ cluster, startCol: min, spanCols: max - min + 1 });
+    bands.push({ scope, startCol: min, spanCols: max - min + 1 });
   }
 
   return bands.sort((a, b) => a.startCol - b.startCol);
@@ -376,7 +376,7 @@ function PhaseCell({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) {
-  const { processFlow, livedJTDs, cognitiveJTDs, delegationClusters, updateLivedJTD, updateCognitiveJTD } =
+  const { processFlow, activities, cognitiveLoadItems, agentScopes, updateActivity, updateCognitiveLoad } =
     useDiscoveryStore();
 
   const [expandedCell, setExpandedCell] = useState<CellKey | null>(null);
@@ -390,20 +390,20 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
   );
 
   const cellMap = useMemo(
-    () => buildCellMap(steps, livedJTDs, cognitiveJTDs),
-    [steps, livedJTDs, cognitiveJTDs]
+    () => buildCellMap(steps, activities, cognitiveLoadItems),
+    [steps, activities, cognitiveLoadItems]
   );
 
   const orderedStepIds = useMemo(() => steps.map((s) => s.id), [steps]);
 
-  const clusterBands = useMemo(
+  const scopeBands = useMemo(
     () =>
-      buildClusterBands(
-        delegationClusters,
+      buildScopeBands(
+        agentScopes,
         processFlow?.cluster_steps ?? [],
         orderedStepIds
       ),
-    [delegationClusters, processFlow?.cluster_steps, orderedStepIds]
+    [agentScopes, processFlow?.cluster_steps, orderedStepIds]
   );
 
   const hasUnassigned =
@@ -418,42 +418,42 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
     async (stepId: string, payload: DragPayload) => {
       try {
         if (payload.jtdType === "lived") {
-          const updated = await discoveryApi.updateLivedJTD(useCaseId, payload.jtdId, {
+          const updated = await discoveryApi.updateActivity(useCaseId, payload.jtdId, {
             process_phase_id: stepId,
           });
-          updateLivedJTD(updated);
+          updateActivity(updated);
         } else {
-          const updated = await discoveryApi.updateCognitiveJTD(useCaseId, payload.jtdId, {
+          const updated = await discoveryApi.updateCognitiveLoad(useCaseId, payload.jtdId, {
             process_phase_id: stepId,
           });
-          updateCognitiveJTD(updated);
+          updateCognitiveLoad(updated);
         }
       } catch (err) {
         console.error("[ProcessMatrixGrid] Failed to assign phase:", err);
       }
     },
-    [useCaseId, updateLivedJTD, updateCognitiveJTD]
+    [useCaseId, updateActivity, updateCognitiveLoad]
   );
 
   const handleUnassign = useCallback(
     async (payload: DragPayload) => {
       try {
         if (payload.jtdType === "lived") {
-          const updated = await discoveryApi.updateLivedJTD(useCaseId, payload.jtdId, {
+          const updated = await discoveryApi.updateActivity(useCaseId, payload.jtdId, {
             process_phase_id: null,
           });
-          updateLivedJTD(updated);
+          updateActivity(updated);
         } else {
-          const updated = await discoveryApi.updateCognitiveJTD(useCaseId, payload.jtdId, {
+          const updated = await discoveryApi.updateCognitiveLoad(useCaseId, payload.jtdId, {
             process_phase_id: null,
           });
-          updateCognitiveJTD(updated);
+          updateCognitiveLoad(updated);
         }
       } catch (err) {
         console.error("[ProcessMatrixGrid] Failed to unassign:", err);
       }
     },
-    [useCaseId, updateLivedJTD, updateCognitiveJTD]
+    [useCaseId, updateActivity, updateCognitiveLoad]
   );
 
   // ── No phases placeholder ─────────────────────────────────────────────────
@@ -492,8 +492,8 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
   const gridTemplateColumns = `140px repeat(${colCount}, minmax(140px, 1fr))`;
 
   const layers: { key: Layer; label: string; accent: string }[] = [
-    { key: "cognitive", label: "Cognitive Load", accent: "var(--jtd-cognitive)" },
-    { key: "lived", label: "Tasks & Interactions", accent: "var(--jtd-lived)" },
+    { key: "cognitive", label: "Cognitive Load", accent: "var(--color-cognitive)" },
+    { key: "lived", label: "Activities", accent: "var(--color-activity)" },
   ];
 
   return (
@@ -645,8 +645,8 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
         ))}
       </div>
 
-      {/* ── Cluster bands ───────────────────────────────────────────────── */}
-      {clusterBands.length > 0 && (
+      {/* ── Scope bands ────────────────────────────────────────────────── */}
+      {scopeBands.length > 0 && (
         <div style={{ marginTop: 16 }}>
           <div
             style={{
@@ -658,7 +658,7 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
               marginBottom: 8,
             }}
           >
-            Delegation Clusters
+            Agent Scopes
           </div>
 
           <div
@@ -668,14 +668,14 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
               gap: 0,
             }}
           >
-            {clusterBands.map((band) => (
+            {scopeBands.map((band) => (
               <div
-                key={band.cluster.id}
+                key={band.scope.id}
                 style={{
                   gridColumnStart: band.startCol + 2,
                   gridColumnEnd: band.startCol + 2 + band.spanCols,
                   background: "rgba(90, 138, 106, 0.08)",
-                  borderLeft: "3px solid var(--jtd-cluster)",
+                  borderLeft: "3px solid var(--color-scope)",
                   borderRadius: 4,
                   padding: "6px 10px",
                   marginBottom: 4,
@@ -689,12 +689,12 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
                     fontSize: 12,
                     fontFamily: "var(--font-ui)",
                     fontWeight: 500,
-                    color: "var(--jtd-cluster)",
+                    color: "var(--color-scope)",
                   }}
                 >
-                  {band.cluster.name}
+                  {band.scope.name}
                 </span>
-                {band.cluster.delegation_mode && (
+                {band.scope.delegation_mode && (
                   <span
                     style={{
                       fontSize: 10,
@@ -705,7 +705,7 @@ export default function ProcessMatrixGrid({ useCaseId }: { useCaseId: string }) 
                       borderRadius: 3,
                     }}
                   >
-                    {band.cluster.delegation_mode}
+                    {band.scope.delegation_mode}
                   </span>
                 )}
               </div>

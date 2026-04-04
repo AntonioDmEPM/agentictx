@@ -18,7 +18,7 @@ AGENTIC_DESIGN_TOOLS: list[dict[str, Any]] = [
     {
         "name": "propose_agent_spec",
         "description": (
-            "Propose a complete agent specification for a delegation cluster. "
+            "Propose a complete agent specification for an agent scope (delegation cluster). "
             "Call this when you have gathered sufficient information through dialogue "
             "to populate all key sections of the agent requirements. "
             "Prefer a thorough spec over a partial one — ask more questions if needed."
@@ -28,7 +28,7 @@ AGENTIC_DESIGN_TOOLS: list[dict[str, Any]] = [
             "properties": {
                 "delegation_cluster_ref": {
                     "type": "string",
-                    "description": "Name of the delegation cluster this spec is built from",
+                    "description": "Name of the agent scope (delegation cluster) this spec is built from",
                 },
                 "name": {
                     "type": "string",
@@ -436,35 +436,35 @@ def _build_system_prompt(
     ]
 
     if clusters:
-        state_parts.append("### Delegation Clusters (validated and scored)\n")
+        state_parts.append("### Agent Scopes (validated and scored)\n")
         for c in clusters:
             state_parts.append(f"**{c['name']}**")
             if c.get("purpose"):
                 state_parts.append(f"Purpose: {c['purpose']}")
 
-            cognitive_jtds = c.get("cognitive_jtds", [])
-            if cognitive_jtds:
-                state_parts.append("Cognitive JTDs:")
-                for jtd in cognitive_jtds:
-                    zone = f" [{jtd.get('cognitive_zone', '')}]" if jtd.get("cognitive_zone") else ""
-                    intensity = f" (load: {jtd.get('load_intensity', '?')}/3)" if jtd.get("load_intensity") is not None else ""
-                    state_parts.append(f"  - {jtd['description']}{zone}{intensity}")
+            cognitive_items = c.get("cognitive_jtds", [])
+            if cognitive_items:
+                state_parts.append("Cognitive Load Items:")
+                for item in cognitive_items:
+                    zone = f" [{item.get('cognitive_zone', '')}]" if item.get("cognitive_zone") else ""
+                    intensity = f" (load: {item.get('load_intensity', '?')}/3)" if item.get("load_intensity") is not None else ""
+                    state_parts.append(f"  - {item['description']}{zone}{intensity}")
 
-            lived_jtds = c.get("lived_jtds", [])
-            if lived_jtds:
-                state_parts.append("Associated Lived JTDs:")
-                for jtd in lived_jtds:
-                    sys_ctx = f" [{jtd.get('system_context', '')}]" if jtd.get("system_context") else ""
-                    state_parts.append(f"  - {jtd['description']}{sys_ctx}")
+            activities = c.get("lived_jtds", [])
+            if activities:
+                state_parts.append("Associated Activities:")
+                for activity in activities:
+                    sys_ctx = f" [{activity.get('system_context', '')}]" if activity.get("system_context") else ""
+                    state_parts.append(f"  - {activity['description']}{sys_ctx}")
 
             scores = c.get("suitability_scores")
             if scores:
                 avg = sum(scores.values()) / len(scores) if scores else 0
-                state_parts.append(f"Suitability: {avg:.1f}/3 average across 9 dimensions")
+                state_parts.append(f"Readiness: {avg:.1f}/3 average across 9 dimensions")
 
             state_parts.append("")
     else:
-        state_parts.append("No delegation clusters available yet. Wait for the consultant to complete discovery.")
+        state_parts.append("No agent scopes available yet. Wait for the consultant to complete discovery.")
         state_parts.append("")
 
     if existing_specs:
@@ -474,7 +474,7 @@ def _build_system_prompt(
         state_parts.append("")
 
     state_parts.append(
-        "Use the cluster context above — including both Cognitive JTDs and Lived JTDs — "
+        "Use the agent scope context above — including both cognitive load items and activities — "
         "to ask targeted questions about integrations, data sources, compliance, and HITL requirements. "
         "Never ask generic questions that ignore this context."
     )

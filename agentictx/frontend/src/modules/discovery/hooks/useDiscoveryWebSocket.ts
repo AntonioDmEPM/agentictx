@@ -24,12 +24,12 @@ export function useDiscoveryWebSocket({
     appendStreamDelta,
     finaliseStreamingMessage,
     setIsStreaming,
-    addLivedJTDs,
-    addCognitiveJTDs,
+    addActivities,
+    addCognitiveLoadItems,
     addProcessSteps,
-    addDelegationCluster,
-    markClustersReplaced,
-    setClusterColumnHighlight,
+    addAgentScope,
+    markScopesReplaced,
+    setScopeColumnHighlight,
     addActivityItem,
     completeActivityItem,
     clearActivityItems,
@@ -51,12 +51,12 @@ export function useDiscoveryWebSocket({
           setIsStreaming(true);
           break;
 
-        case "lived_jtds_proposed":
-          addLivedJTDs(event.jtds);
+        case "activities_proposed":
+          addActivities(event.items);
           break;
 
-        case "cognitive_jtds_proposed":
-          addCognitiveJTDs(event.jtds);
+        case "cognitive_load_proposed":
+          addCognitiveLoadItems(event.items);
           break;
 
         case "process_phases_proposed":
@@ -64,7 +64,7 @@ export function useDiscoveryWebSocket({
           break;
 
         case "cluster_proposed":
-          addDelegationCluster(event.cluster);
+          addAgentScope(event.cluster);
           break;
 
         case "message_complete":
@@ -75,13 +75,13 @@ export function useDiscoveryWebSocket({
         case "system_notification":
           addSystemMessage(event.text);
           if (event.highlight === "clusters") {
-            setClusterColumnHighlight(true);
-            setTimeout(() => setClusterColumnHighlight(false), 2000);
+            setScopeColumnHighlight(true);
+            setTimeout(() => setScopeColumnHighlight(false), 2000);
           }
           break;
 
         case "clusters_replaced":
-          markClustersReplaced();
+          markScopesReplaced();
           break;
 
         case "error":
@@ -98,12 +98,12 @@ export function useDiscoveryWebSocket({
     [
       appendStreamDelta,
       setIsStreaming,
-      addLivedJTDs,
-      addCognitiveJTDs,
+      addActivities,
+      addCognitiveLoadItems,
       addProcessSteps,
-      addDelegationCluster,
-      markClustersReplaced,
-      setClusterColumnHighlight,
+      addAgentScope,
+      markScopesReplaced,
+      setScopeColumnHighlight,
       addSystemMessage,
       finaliseStreamingMessage,
       addChatMessage,

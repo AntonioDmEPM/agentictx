@@ -36,7 +36,7 @@ class AgentSpecification(Base):
         ForeignKey("use_cases.id", ondelete="CASCADE"),
         nullable=False,
     )
-    # Advisory reference to the delegation cluster this spec was built from
+    # Advisory reference to the agent scope (delegation cluster) this spec was built from
     delegation_cluster_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )

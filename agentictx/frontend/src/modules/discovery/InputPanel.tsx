@@ -46,7 +46,7 @@ function SystemMessageBanner({
   onProceed?: () => void;
   clusteringProposed: boolean;
 }) {
-  const showProceed = msg.text.includes("propose delegation clusters");
+  const showProceed = msg.text.includes("propose agent scopes") || msg.text.includes("propose delegation clusters");
   const [proceeding, setProceeding] = useState(false);
   const disabled = proceeding || clusteringProposed;
   return (
@@ -253,9 +253,9 @@ function FileDropZone({
 
 const FRIENDLY_TOOL_NAMES: Record<string, string> = {
   propose_process_phases: "Identifying process phases",
-  propose_lived_jtds: "Extracting tasks & interactions",
-  propose_cognitive_jtds: "Extracting cognitive load items",
-  propose_delegation_cluster: "Proposing delegation cluster",
+  propose_lived_jtds: "Extracting activities",
+  propose_cognitive_jtds: "Extracting cognitive load",
+  propose_delegation_cluster: "Proposing agent scope",
 };
 
 function ActivityStrip({
@@ -340,9 +340,9 @@ export function InputPanel({ useCaseId, sendMessage, notifyFileProcessed, onColl
     addChatMessage({
       id: `user-${Date.now()}`,
       role: "user",
-      text: "Please propose delegation clusters based on the confirmed JTDs.",
+      text: "Please propose agent scopes based on the confirmed activities.",
     });
-    sendMessage("Please propose delegation clusters based on the confirmed JTDs.");
+    sendMessage("Please propose agent scopes based on the confirmed activities.");
   };
 
   const handleFileUploaded = (rawInputId: string) => {

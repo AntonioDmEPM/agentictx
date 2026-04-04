@@ -16,7 +16,7 @@ export function PromptComponentNode({ data }: { data: PromptComponentNodeData })
 
   return (
     <>
-      <Handle type="source" position={Position.Bottom} style={{ background: "var(--jtd-cognitive)" }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: "var(--color-cognitive)" }} />
 
       <div
         onMouseEnter={() => setHovered(true)}
@@ -27,7 +27,7 @@ export function PromptComponentNode({ data }: { data: PromptComponentNodeData })
           borderRadius: 6,
           background: "var(--bg-elevated)",
           border: "1px solid var(--bg-border)",
-          borderTop: "2px solid var(--jtd-cognitive)",
+          borderTop: "2px solid var(--color-cognitive)",
           padding: "8px 12px",
           display: "flex",
           flexDirection: "column",

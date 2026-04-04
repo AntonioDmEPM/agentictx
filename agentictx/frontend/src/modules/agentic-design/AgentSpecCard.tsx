@@ -84,7 +84,7 @@ function SpecDetail({ spec }: { spec: AgentSpecification }) {
           <ul className="flex flex-col gap-1">
             {spec.activities.map((a, i) => (
               <li key={i} className="text-xs text-text-primary font-body flex gap-1.5">
-                <span style={{ color: "var(--jtd-agent)" }}>›</span>
+                <span style={{ color: "var(--color-agent)" }}>›</span>
                 {a}
               </li>
             ))}
@@ -181,7 +181,7 @@ export function AgentSpecCard({
       style={{
         borderColor: "var(--bg-border)",
         borderLeftWidth: "3px",
-        borderLeftColor: "var(--jtd-agent)",
+        borderLeftColor: "var(--color-agent)",
       }}
     >
       <div className="px-3 py-2.5 flex flex-col gap-2">
@@ -203,7 +203,7 @@ export function AgentSpecCard({
         {/* Name */}
         <p
           className="text-sm font-medium font-body"
-          style={{ color: "var(--jtd-agent)" }}
+          style={{ color: "var(--color-agent)" }}
         >
           {spec.name}
         </p>
@@ -246,8 +246,8 @@ export function AgentSpecCard({
             onClick={onDownloadArd}
             className="text-xs font-ui px-2 py-0.5 rounded-sm border transition-colors"
             style={{
-              color: "var(--jtd-agent)",
-              borderColor: "var(--jtd-agent)",
+              color: "var(--color-agent)",
+              borderColor: "var(--color-agent)",
             }}
           >
             Download ARD
@@ -313,8 +313,8 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
               key={i}
               className="text-xs font-ui px-1.5 py-0.5 rounded-sm"
               style={{
-                color: "var(--jtd-agent)",
-                background: "color-mix(in srgb, var(--jtd-agent) 10%, transparent)",
+                color: "var(--color-agent)",
+                background: "color-mix(in srgb, var(--color-agent) 10%, transparent)",
               }}
             >
               {agent}

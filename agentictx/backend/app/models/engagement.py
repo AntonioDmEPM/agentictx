@@ -82,14 +82,14 @@ class UseCase(Base):
     conversation_messages: Mapped[list["ConversationMessage"]] = relationship(  # type: ignore[name-defined]
         "ConversationMessage", back_populates="use_case", cascade="all, delete-orphan"
     )
-    lived_jtds: Mapped[list["LivedJTD"]] = relationship(  # type: ignore[name-defined]
-        "LivedJTD", back_populates="use_case", cascade="all, delete-orphan"
+    activities: Mapped[list["Activity"]] = relationship(  # type: ignore[name-defined]
+        "Activity", back_populates="use_case", cascade="all, delete-orphan"
     )
-    cognitive_jtds: Mapped[list["CognitiveJTD"]] = relationship(  # type: ignore[name-defined]
-        "CognitiveJTD", back_populates="use_case", cascade="all, delete-orphan"
+    cognitive_load_items: Mapped[list["CognitiveLoad"]] = relationship(  # type: ignore[name-defined]
+        "CognitiveLoad", back_populates="use_case", cascade="all, delete-orphan"
     )
-    delegation_clusters: Mapped[list["DelegationCluster"]] = relationship(  # type: ignore[name-defined]
-        "DelegationCluster", back_populates="use_case", cascade="all, delete-orphan"
+    agent_scopes: Mapped[list["AgentScope"]] = relationship(  # type: ignore[name-defined]
+        "AgentScope", back_populates="use_case", cascade="all, delete-orphan"
     )
 
     # Agentic design relationships (defined in agentic_design.py)

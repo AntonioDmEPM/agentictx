@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CognitiveJTD, DelegationCluster, JTDStatus, LivedJTD, SuitabilityScores } from "@/types/discovery";
+import type { Activity, AgentScope, ActivityStatus, CognitiveLoad, ReadinessScores } from "@/types/discovery";
 
 // ─── Shared card wrapper ──────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ function CardShell({ accentColor, borderColor, children }: CardShellProps) {
 
 // ─── Status chip ──────────────────────────────────────────────────────────────
 
-function StatusChip({ status }: { status: JTDStatus | "replaced" }) {
+function StatusChip({ status }: { status: ActivityStatus | "replaced" }) {
   const map: Record<string, { label: string; color: string }> = {
     proposed: { label: "Proposed", color: "var(--accent-amber)" },
     confirmed: { label: "Confirmed", color: "var(--accent-success)" },
@@ -368,10 +368,10 @@ function CompactPill({
   );
 }
 
-// ─── Lived JTD Card ───────────────────────────────────────────────────────────
+// ─── Activity Card ────────────────────────────────────────────────────────────
 
-interface LivedJTDCardProps {
-  jtd: LivedJTD;
+interface ActivityCardProps {
+  activity: Activity;
   phaseName?: string | null;
   dimmed?: boolean;
   onConfirm: () => void;
@@ -382,17 +382,17 @@ interface LivedJTDCardProps {
   onScrollToSource?: (messageId: string) => void;
 }
 
-export function LivedJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onReinstate, onUpdate, onDelete, onScrollToSource }: LivedJTDCardProps) {
+export function ActivityCard({ activity, phaseName, dimmed, onConfirm, onReject, onReinstate, onUpdate, onDelete, onScrollToSource }: ActivityCardProps) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const isRejected = jtd.status === "rejected";
-  const isCompact = (jtd.status === "confirmed" || isRejected) && !expanded;
+  const isRejected = activity.status === "rejected";
+  const isCompact = (activity.status === "confirmed" || isRejected) && !expanded;
 
   if (isCompact) {
     return (
       <CompactPill
-        status={jtd.status as "confirmed" | "rejected"}
-        description={jtd.description}
+        status={activity.status as "confirmed" | "rejected"}
+        description={activity.description}
         phaseName={phaseName}
         dimmed={dimmed}
         onExpand={() => setExpanded(true)}
@@ -402,8 +402,8 @@ export function LivedJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onRe
 
   return (
     <CardShell
-      accentColor={isRejected ? "var(--text-muted)" : "var(--jtd-lived)"}
-      borderColor={jtd.status === "confirmed" ? "var(--accent-success)" : "var(--bg-border)"}
+      accentColor={isRejected ? "var(--text-muted)" : "var(--color-activity)"}
+      borderColor={activity.status === "confirmed" ? "var(--accent-success)" : "var(--bg-border)"}
     >
       <div
         className="px-3 py-2.5 flex flex-col gap-2"
@@ -415,9 +415,9 @@ export function LivedJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onRe
       >
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
-          <StatusChip status={jtd.status} />
+          <StatusChip status={activity.status} />
           <div className="flex items-center gap-1.5">
-            <LoadDot score={null} accentColor="var(--jtd-lived)" />
+            <LoadDot score={null} accentColor="var(--color-activity)" />
             <button
               onClick={() => setExpanded(false)}
               className="text-xs font-ui text-text-muted hover:text-text-secondary transition-colors"
@@ -436,17 +436,17 @@ export function LivedJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onRe
         {/* Description / Edit form */}
         {editing ? (
           <InlineEditForm
-            description={jtd.description}
+            description={activity.description}
             secondaryLabel="System context (optional)"
-            secondaryValue={jtd.system_context ?? ""}
+            secondaryValue={activity.system_context ?? ""}
             onSave={(desc, ctx) => { onUpdate(desc, ctx); setEditing(false); }}
             onCancel={() => setEditing(false)}
           />
         ) : (
           <>
-            <ClampedDescription text={jtd.description} onDoubleClick={() => !isRejected && setEditing(true)} />
-            {jtd.system_context && (
-              <p className="text-xs text-text-muted font-ui">{jtd.system_context}</p>
+            <ClampedDescription text={activity.description} onDoubleClick={() => !isRejected && setEditing(true)} />
+            {activity.system_context && (
+              <p className="text-xs text-text-muted font-ui">{activity.system_context}</p>
             )}
             {phaseName && (
               <p className="text-xs font-ui" style={{ color: "var(--text-muted)" }}>{phaseName}</p>
@@ -457,14 +457,14 @@ export function LivedJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onRe
         {/* Provenance indicator */}
         {!editing && (
           <ProvenanceIndicator
-            sourceMessageId={jtd.source_message_id}
-            isModified={jtd.is_modified}
+            sourceMessageId={activity.source_message_id}
+            isModified={activity.is_modified}
             onScrollToSource={onScrollToSource}
           />
         )}
 
         {/* Actions — proposed: Confirm + Reject */}
-        {jtd.status === "proposed" && !editing && (
+        {activity.status === "proposed" && !editing && (
           <div className="flex items-center gap-2 pt-0.5">
             <ConfirmButton onClick={onConfirm} />
             <RejectButton onClick={onReject} />
@@ -472,7 +472,7 @@ export function LivedJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onRe
         )}
 
         {/* Actions — confirmed: Unconfirm toggle */}
-        {jtd.status === "confirmed" && !editing && (
+        {activity.status === "confirmed" && !editing && (
           <div className="flex items-center gap-2 pt-0.5">
             <UnconfirmButton onClick={onReject} />
           </div>
@@ -482,10 +482,10 @@ export function LivedJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onRe
   );
 }
 
-// ─── Cognitive JTD Card ───────────────────────────────────────────────────────
+// ─── Cognitive Load Card ──────────────────────────────────────────────────────
 
-interface CognitiveJTDCardProps {
-  jtd: CognitiveJTD;
+interface CognitiveLoadCardProps {
+  item: CognitiveLoad;
   phaseName?: string | null;
   dimmed?: boolean;
   onConfirm: () => void;
@@ -496,17 +496,17 @@ interface CognitiveJTDCardProps {
   onScrollToSource?: (messageId: string) => void;
 }
 
-export function CognitiveJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, onReinstate, onUpdate, onDelete, onScrollToSource }: CognitiveJTDCardProps) {
+export function CognitiveLoadCard({ item, phaseName, dimmed, onConfirm, onReject, onReinstate, onUpdate, onDelete, onScrollToSource }: CognitiveLoadCardProps) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const isRejected = jtd.status === "rejected";
-  const isCompact = (jtd.status === "confirmed" || isRejected) && !expanded;
+  const isRejected = item.status === "rejected";
+  const isCompact = (item.status === "confirmed" || isRejected) && !expanded;
 
   if (isCompact) {
     return (
       <CompactPill
-        status={jtd.status as "confirmed" | "rejected"}
-        description={jtd.description}
+        status={item.status as "confirmed" | "rejected"}
+        description={item.description}
         phaseName={phaseName}
         dimmed={dimmed}
         onExpand={() => setExpanded(true)}
@@ -516,8 +516,8 @@ export function CognitiveJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, 
 
   return (
     <CardShell
-      accentColor={isRejected ? "var(--text-muted)" : "var(--jtd-cognitive)"}
-      borderColor={jtd.status === "confirmed" ? "var(--accent-success)" : "var(--bg-border)"}
+      accentColor={isRejected ? "var(--text-muted)" : "var(--color-cognitive)"}
+      borderColor={item.status === "confirmed" ? "var(--accent-success)" : "var(--bg-border)"}
     >
       <div
         className="px-3 py-2.5 flex flex-col gap-2"
@@ -528,9 +528,9 @@ export function CognitiveJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, 
         }}
       >
         <div className="flex items-start justify-between gap-2">
-          <StatusChip status={jtd.status} />
+          <StatusChip status={item.status} />
           <div className="flex items-center gap-1.5">
-            <LoadDot score={jtd.load_intensity} accentColor="var(--jtd-cognitive)" />
+            <LoadDot score={item.load_intensity} accentColor="var(--color-cognitive)" />
             <button
               onClick={() => setExpanded(false)}
               className="text-xs font-ui text-text-muted hover:text-text-secondary transition-colors"
@@ -548,17 +548,17 @@ export function CognitiveJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, 
 
         {editing ? (
           <InlineEditForm
-            description={jtd.description}
+            description={item.description}
             secondaryLabel="Cognitive zone (optional)"
-            secondaryValue={jtd.cognitive_zone ?? ""}
+            secondaryValue={item.cognitive_zone ?? ""}
             onSave={(desc, zone) => { onUpdate(desc, zone); setEditing(false); }}
             onCancel={() => setEditing(false)}
           />
         ) : (
           <>
-            <ClampedDescription text={jtd.description} onDoubleClick={() => !isRejected && setEditing(true)} />
-            {jtd.cognitive_zone && (
-              <p className="text-xs text-text-muted font-ui">{jtd.cognitive_zone}</p>
+            <ClampedDescription text={item.description} onDoubleClick={() => !isRejected && setEditing(true)} />
+            {item.cognitive_zone && (
+              <p className="text-xs text-text-muted font-ui">{item.cognitive_zone}</p>
             )}
             {phaseName && (
               <p className="text-xs font-ui" style={{ color: "var(--text-muted)" }}>{phaseName}</p>
@@ -569,14 +569,14 @@ export function CognitiveJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, 
         {/* Provenance indicator */}
         {!editing && (
           <ProvenanceIndicator
-            sourceMessageId={jtd.source_message_id}
-            isModified={jtd.is_modified}
+            sourceMessageId={item.source_message_id}
+            isModified={item.is_modified}
             onScrollToSource={onScrollToSource}
           />
         )}
 
         {/* Actions — proposed: Confirm + Reject */}
-        {jtd.status === "proposed" && !editing && (
+        {item.status === "proposed" && !editing && (
           <div className="flex items-center gap-2 pt-0.5">
             <ConfirmButton onClick={onConfirm} />
             <RejectButton onClick={onReject} />
@@ -584,7 +584,7 @@ export function CognitiveJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, 
         )}
 
         {/* Actions — confirmed: Unconfirm toggle */}
-        {jtd.status === "confirmed" && !editing && (
+        {item.status === "confirmed" && !editing && (
           <div className="flex items-center gap-2 pt-0.5">
             <UnconfirmButton onClick={onReject} />
           </div>
@@ -596,7 +596,7 @@ export function CognitiveJTDCard({ jtd, phaseName, dimmed, onConfirm, onReject, 
 
 // ─── Suitability Score Bar ─────────────────────────────────────────────────────
 
-const DIMENSION_LABELS: Record<keyof SuitabilityScores, string> = {
+const DIMENSION_LABELS: Record<keyof ReadinessScores, string> = {
   cognitive_load_intensity: "Cognitive Load",
   input_data_structure: "Input Structure",
   actionability_tool_coverage: "Tool Coverage",
@@ -622,12 +622,12 @@ const DELEGATION_MODES = [
   { label: "Human Only", color: "var(--accent-warm)" },
 ] as const;
 
-function SuitabilityBar({
+function ReadinessBar({
   scores,
   delegationMode,
   onSelectDelegationMode,
 }: {
-  scores: SuitabilityScores;
+  scores: ReadinessScores;
   delegationMode?: string | null;
   onSelectDelegationMode?: (mode: string) => void;
 }) {
@@ -641,12 +641,12 @@ function SuitabilityBar({
   return (
     <div className="flex flex-col gap-1.5 mt-1">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-ui text-text-secondary">Suitability</span>
-        <span className="text-xs font-ui" style={{ color: "var(--jtd-cluster)" }}>
+        <span className="text-xs font-ui text-text-secondary">Readiness</span>
+        <span className="text-xs font-ui" style={{ color: "var(--color-scope)" }}>
           {avg.toFixed(1)}/3
         </span>
       </div>
-      {(Object.entries(scores) as [keyof SuitabilityScores, number][]).map(
+      {(Object.entries(scores) as [keyof ReadinessScores, number][]).map(
         ([dim, score]) => (
           <div key={dim} className="flex items-center gap-2">
             <span className="text-xs font-ui text-text-muted shrink-0" style={{ minWidth: "7rem" }}>
@@ -674,7 +674,7 @@ function SuitabilityBar({
       {/* Delegation mode recommendation */}
       <div className="mt-2 pt-2 border-t" style={{ borderColor: "var(--bg-border)" }}>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-ui text-text-secondary">Delegation Mode</span>
+          <span className="text-xs font-ui text-text-secondary">Autonomy Level</span>
           <span
             className="text-xs font-ui"
             style={{ color: recommended.color }}
@@ -709,41 +709,41 @@ function SuitabilityBar({
 // ─── Membership Edit Panel ────────────────────────────────────────────────────
 
 function MembershipEditPanel({
-  cluster,
-  confirmedLivedJTDs,
-  confirmedCognitiveJTDs,
+  scope,
+  confirmedActivities,
+  confirmedCognitiveLoad,
   onToggle,
 }: {
-  cluster: DelegationCluster;
-  confirmedLivedJTDs: LivedJTD[];
-  confirmedCognitiveJTDs: CognitiveJTD[];
-  onToggle: (jtdId: string, type: "lived" | "cognitive", isMember: boolean) => void;
+  scope: AgentScope;
+  confirmedActivities: Activity[];
+  confirmedCognitiveLoad: CognitiveLoad[];
+  onToggle: (itemId: string, type: "lived" | "cognitive", isMember: boolean) => void;
 }) {
-  const livedMemberSet = new Set(cluster.lived_jtd_ids ?? []);
-  const cognitiveMemberSet = new Set(cluster.cognitive_jtd_ids);
+  const activityMemberSet = new Set(scope.lived_jtd_ids ?? []);
+  const cognitiveMemberSet = new Set(scope.cognitive_jtd_ids);
 
   return (
     <div
       className="mt-1 pt-2 border-t flex flex-col gap-2"
       style={{ borderColor: "var(--bg-border)" }}
     >
-      {/* JTDs section */}
-      {confirmedLivedJTDs.length > 0 && (
+      {/* Activities section */}
+      {confirmedActivities.length > 0 && (
         <div>
-          <p className="text-xs font-ui mb-1" style={{ color: "var(--jtd-lived)" }}>
-            Tasks & Interactions
+          <p className="text-xs font-ui mb-1" style={{ color: "var(--color-activity)" }}>
+            Activities
           </p>
-          {confirmedLivedJTDs.map((jtd) => {
-            const isMember = livedMemberSet.has(jtd.id);
+          {confirmedActivities.map((act) => {
+            const isMember = activityMemberSet.has(act.id);
             return (
               <label
-                key={jtd.id}
+                key={act.id}
                 className="flex items-start gap-2 py-0.5 cursor-pointer"
               >
                 <input
                   type="checkbox"
                   checked={isMember}
-                  onChange={() => onToggle(jtd.id, "lived", isMember)}
+                  onChange={() => onToggle(act.id, "lived", isMember)}
                   className="mt-0.5 shrink-0"
                 />
                 <span
@@ -755,9 +755,9 @@ function MembershipEditPanel({
                     WebkitBoxOrient: "vertical",
                     overflow: "hidden",
                   }}
-                  title={jtd.description}
+                  title={act.description}
                 >
-                  {jtd.description}
+                  {act.description}
                 </span>
               </label>
             );
@@ -766,22 +766,22 @@ function MembershipEditPanel({
       )}
 
       {/* Cognitive Load section */}
-      {confirmedCognitiveJTDs.length > 0 && (
+      {confirmedCognitiveLoad.length > 0 && (
         <div>
-          <p className="text-xs font-ui mb-1" style={{ color: "var(--jtd-cognitive)" }}>
+          <p className="text-xs font-ui mb-1" style={{ color: "var(--color-cognitive)" }}>
             Cognitive Load
           </p>
-          {confirmedCognitiveJTDs.map((jtd) => {
-            const isMember = cognitiveMemberSet.has(jtd.id);
+          {confirmedCognitiveLoad.map((clItem) => {
+            const isMember = cognitiveMemberSet.has(clItem.id);
             return (
               <label
-                key={jtd.id}
+                key={clItem.id}
                 className="flex items-start gap-2 py-0.5 cursor-pointer"
               >
                 <input
                   type="checkbox"
                   checked={isMember}
-                  onChange={() => onToggle(jtd.id, "cognitive", isMember)}
+                  onChange={() => onToggle(clItem.id, "cognitive", isMember)}
                   className="mt-0.5 shrink-0"
                 />
                 <span
@@ -793,9 +793,9 @@ function MembershipEditPanel({
                     WebkitBoxOrient: "vertical",
                     overflow: "hidden",
                   }}
-                  title={jtd.description}
+                  title={clItem.description}
                 >
-                  {jtd.description}
+                  {clItem.description}
                 </span>
               </label>
             );
@@ -806,22 +806,22 @@ function MembershipEditPanel({
   );
 }
 
-// ─── Delegation Cluster Card ──────────────────────────────────────────────────
+// ─── Agent Scope Card ────────────────────────────────────────────────────────
 
-interface DelegationClusterCardProps {
-  cluster: DelegationCluster;
+interface AgentScopeCardProps {
+  cluster: AgentScope;
   onConfirm: () => void;
   onScore: () => void;
   onSelectDelegationMode?: (mode: string) => void;
   isScoring?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
-  confirmedLivedJTDs?: LivedJTD[];
-  confirmedCognitiveJTDs?: CognitiveJTD[];
-  onToggleMembership?: (jtdId: string, type: "lived" | "cognitive", isMember: boolean) => void;
+  confirmedActivities?: Activity[];
+  confirmedCognitiveLoad?: CognitiveLoad[];
+  onToggleMembership?: (itemId: string, type: "lived" | "cognitive", isMember: boolean) => void;
 }
 
-export function DelegationClusterCard({
+export function AgentScopeCard({
   cluster,
   onConfirm,
   onScore,
@@ -829,17 +829,17 @@ export function DelegationClusterCard({
   isScoring = false,
   isSelected = false,
   onSelect,
-  confirmedLivedJTDs,
-  confirmedCognitiveJTDs,
+  confirmedActivities,
+  confirmedCognitiveLoad,
   onToggleMembership,
-}: DelegationClusterCardProps) {
+}: AgentScopeCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editingMembers, setEditingMembers] = useState(false);
 
   return (
     <CardShell
-      accentColor="var(--jtd-cluster)"
-      borderColor={isSelected ? "var(--jtd-cluster)" : "var(--bg-border)"}
+      accentColor="var(--color-scope)"
+      borderColor={isSelected ? "var(--color-scope)" : "var(--bg-border)"}
     >
       <div
         className="px-3 py-2.5 flex flex-col gap-2 cursor-pointer"
@@ -885,13 +885,13 @@ export function DelegationClusterCard({
           {cluster.cognitive_jtd_ids.length} Cognitive Load item
           {cluster.cognitive_jtd_ids.length !== 1 ? "s" : ""}
           {cluster.lived_jtd_ids?.length
-            ? ` · ${cluster.lived_jtd_ids.length} JTD${cluster.lived_jtd_ids.length !== 1 ? "s" : ""}`
+            ? ` · ${cluster.lived_jtd_ids.length} activit${cluster.lived_jtd_ids.length !== 1 ? "ies" : "y"}`
             : ""}
         </p>
 
         {/* Suitability scores (if scored) */}
         {expanded && cluster.suitability_scores && (
-          <SuitabilityBar
+          <ReadinessBar
             scores={cluster.suitability_scores}
             delegationMode={cluster.delegation_mode}
             onSelectDelegationMode={onSelectDelegationMode}
@@ -899,11 +899,11 @@ export function DelegationClusterCard({
         )}
 
         {/* Membership editing panel */}
-        {editingMembers && confirmedLivedJTDs && confirmedCognitiveJTDs && onToggleMembership && (
+        {editingMembers && confirmedActivities && confirmedCognitiveLoad && onToggleMembership && (
           <MembershipEditPanel
-            cluster={cluster}
-            confirmedLivedJTDs={confirmedLivedJTDs}
-            confirmedCognitiveJTDs={confirmedCognitiveJTDs}
+            scope={cluster}
+            confirmedActivities={confirmedActivities}
+            confirmedCognitiveLoad={confirmedCognitiveLoad}
             onToggle={onToggleMembership}
           />
         )}
@@ -922,8 +922,8 @@ export function DelegationClusterCard({
               disabled={isScoring}
               className="text-xs font-ui px-2 py-0.5 rounded-sm border transition-colors"
               style={{
-                color: "var(--jtd-cluster)",
-                borderColor: "var(--jtd-cluster)",
+                color: "var(--color-scope)",
+                borderColor: "var(--color-scope)",
                 opacity: isScoring ? 0.5 : 1,
               }}
             >

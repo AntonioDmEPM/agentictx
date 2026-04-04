@@ -2,7 +2,7 @@ import { useState } from "react";
 import { agenticDesignApi } from "@/api/agentic_design";
 import { useAgenticDesignStore } from "@/store/agenticDesignStore";
 import { AgentSpecCard, OpportunityCard } from "./AgentSpecCard";
-import type { DelegationCluster } from "@/types/discovery";
+import type { AgentScope } from "@/types/discovery";
 
 // ─── Collapse button ──────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ function CollapseBtn({ onClick, dir }: { onClick: () => void; dir: "left" | "rig
 
 interface SpecPanelProps {
   useCaseId: string;
-  clusters: DelegationCluster[];
+  clusters: AgentScope[];
   onViewDiagram: (specId: string) => void;
   onCollapse: () => void;
 }
@@ -89,8 +89,8 @@ export function SpecPanel({ useCaseId, clusters, onViewDiagram, onCollapse }: Sp
               onClick={handleDownloadArd}
               className="text-xs font-ui px-3 py-1 rounded-sm border transition-colors"
               style={{
-                color: "var(--jtd-agent)",
-                borderColor: "var(--jtd-agent)",
+                color: "var(--color-agent)",
+                borderColor: "var(--color-agent)",
               }}
             >
               Download ARD
@@ -103,7 +103,7 @@ export function SpecPanel({ useCaseId, clusters, onViewDiagram, onCollapse }: Sp
       {/* Cluster chips — context for consultant */}
       {clusters.length > 0 && (
         <div className="px-5 py-2.5 border-b border-bg-border shrink-0">
-          <p className="text-xs font-ui text-text-muted mb-2">Delegation clusters in scope</p>
+          <p className="text-xs font-ui text-text-muted mb-2">Agent scopes in scope</p>
           <div className="flex flex-wrap gap-2">
             {clusters.map((cluster) => {
               const hasSpec = agentSpecs.some(
@@ -116,8 +116,8 @@ export function SpecPanel({ useCaseId, clusters, onViewDiagram, onCollapse }: Sp
                   key={cluster.id}
                   className="text-xs font-ui px-2 py-0.5 rounded-sm"
                   style={{
-                    color: hasSpec ? "var(--jtd-agent)" : "var(--jtd-cluster)",
-                    border: `1px solid ${hasSpec ? "var(--jtd-agent)" : "var(--jtd-cluster)"}`,
+                    color: hasSpec ? "var(--color-agent)" : "var(--color-scope)",
+                    border: `1px solid ${hasSpec ? "var(--color-agent)" : "var(--color-scope)"}`,
                     opacity: 0.85,
                   }}
                 >
@@ -137,7 +137,7 @@ export function SpecPanel({ useCaseId, clusters, onViewDiagram, onCollapse }: Sp
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <p className="text-text-muted text-sm font-ui mb-2">No agent specifications yet</p>
             <p className="text-text-muted text-xs font-body max-w-xs leading-relaxed">
-              Use the conversation on the left to discuss a delegation cluster. The agent will
+              Use the conversation on the left to discuss an agent scope. The agent will
               propose a specification once enough information has been gathered.
             </p>
           </div>

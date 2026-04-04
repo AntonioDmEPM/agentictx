@@ -4,7 +4,14 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.models.discovery import ClusterStatus, JTDStatus, MessageRole, RawInputType
+from app.models.discovery import (
+    ActivityStatus,
+    ClusterStatus,
+    JTDStatus,
+    MessageRole,
+    RawInputType,
+    ScopeStatus,
+)
 
 
 # ─── Raw Input ───────────────────────────────────────────────────────────────
@@ -35,15 +42,15 @@ class ConversationMessageRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ─── Lived JTD ───────────────────────────────────────────────────────────────
+# ─── Activity (Job To Be Done) ──────────────────────────────────────────────
 
-class LivedJTDRead(BaseModel):
+class ActivityRead(BaseModel):
     id: uuid.UUID
     use_case_id: uuid.UUID
     description: str
     system_context: str | None
     process_phase_id: uuid.UUID | None
-    status: JTDStatus
+    status: ActivityStatus
     linked_cognitive_jtd_id: uuid.UUID | None
     source_message_id: uuid.UUID | None = None
     is_modified: bool = False
@@ -53,24 +60,36 @@ class LivedJTDRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class LivedJTDCreate(BaseModel):
+# Keep old name as alias for backward compatibility
+LivedJTDRead = ActivityRead
+
+
+class ActivityCreate(BaseModel):
     description: str = Field(..., min_length=1)
     system_context: str | None = None
     process_phase_id: uuid.UUID | None = None
 
 
-class LivedJTDUpdate(BaseModel):
+# Keep old name as alias for backward compatibility
+LivedJTDCreate = ActivityCreate
+
+
+class ActivityUpdate(BaseModel):
     description: str | None = Field(None, min_length=1)
     system_context: str | None = None
     process_phase_id: uuid.UUID | None = None
-    status: JTDStatus | None = None
+    status: ActivityStatus | None = None
     linked_cognitive_jtd_id: uuid.UUID | None = None
     is_modified: bool | None = None
 
 
-# ─── Cognitive JTD ───────────────────────────────────────────────────────────
+# Keep old name as alias for backward compatibility
+LivedJTDUpdate = ActivityUpdate
 
-class CognitiveJTDRead(BaseModel):
+
+# ─── Cognitive Load ──────────────────────────────────────────────────────────
+
+class CognitiveLoadRead(BaseModel):
     id: uuid.UUID
     use_case_id: uuid.UUID
     description: str
@@ -78,7 +97,7 @@ class CognitiveJTDRead(BaseModel):
     load_intensity: int | None
     process_phase_id: uuid.UUID | None
     linked_lived_jtd_ids: list[str] | None
-    status: JTDStatus
+    status: ActivityStatus
     source_message_id: uuid.UUID | None = None
     is_modified: bool = False
     created_at: datetime
@@ -87,26 +106,38 @@ class CognitiveJTDRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class CognitiveJTDCreate(BaseModel):
+# Keep old name as alias for backward compatibility
+CognitiveJTDRead = CognitiveLoadRead
+
+
+class CognitiveLoadCreate(BaseModel):
     description: str = Field(..., min_length=1)
     cognitive_zone: str | None = None
     load_intensity: int | None = Field(None, ge=0, le=3)
     process_phase_id: uuid.UUID | None = None
 
 
-class CognitiveJTDUpdate(BaseModel):
+# Keep old name as alias for backward compatibility
+CognitiveJTDCreate = CognitiveLoadCreate
+
+
+class CognitiveLoadUpdate(BaseModel):
     description: str | None = Field(None, min_length=1)
     cognitive_zone: str | None = None
     load_intensity: int | None = Field(None, ge=0, le=3)
     process_phase_id: uuid.UUID | None = None
     linked_lived_jtd_ids: list[str] | None = None
-    status: JTDStatus | None = None
+    status: ActivityStatus | None = None
     is_modified: bool | None = None
 
 
-# ─── Delegation Cluster ───────────────────────────────────────────────────────
+# Keep old name as alias for backward compatibility
+CognitiveJTDUpdate = CognitiveLoadUpdate
 
-class DelegationClusterRead(BaseModel):
+
+# ─── Agent Scope (Delegation Cluster) ────────────────────────────────────────
+
+class AgentScopeRead(BaseModel):
     id: uuid.UUID
     use_case_id: uuid.UUID
     name: str
@@ -115,17 +146,25 @@ class DelegationClusterRead(BaseModel):
     lived_jtd_ids: list[uuid.UUID]
     suitability_scores: dict[str, int] | None
     delegation_mode: str | None
-    status: ClusterStatus
+    status: ScopeStatus
     is_scored: bool
     created_at: datetime
     updated_at: datetime
 
 
-class DelegationClusterUpdate(BaseModel):
+# Keep old name as alias for backward compatibility
+DelegationClusterRead = AgentScopeRead
+
+
+class AgentScopeUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     purpose: str | None = None
     delegation_mode: str | None = None
-    status: ClusterStatus | None = None
+    status: ScopeStatus | None = None
+
+
+# Keep old name as alias for backward compatibility
+DelegationClusterUpdate = AgentScopeUpdate
 
 
 # ─── Cognitive Map (full GET response) ───────────────────────────────────────
@@ -134,14 +173,14 @@ class CognitiveMapRead(BaseModel):
     use_case_id: uuid.UUID
     raw_inputs: list[RawInputRead]
     conversation_messages: list[ConversationMessageRead]
-    lived_jtds: list[LivedJTDRead]
-    cognitive_jtds: list[CognitiveJTDRead]
-    delegation_clusters: list[DelegationClusterRead]
+    lived_jtds: list[ActivityRead]
+    cognitive_jtds: list[CognitiveLoadRead]
+    delegation_clusters: list[AgentScopeRead]
 
 
-# ─── Suitability Score ────────────────────────────────────────────────────────
+# ─── Readiness Score ─────────────────────────────────────────────────────────
 
-SUITABILITY_DIMENSIONS = [
+READINESS_DIMENSIONS = [
     "cognitive_load_intensity",
     "input_data_structure",
     "actionability_tool_coverage",
@@ -153,8 +192,11 @@ SUITABILITY_DIMENSIONS = [
     "latency_constraints",
 ]
 
+# Keep old name as alias for backward compatibility
+SUITABILITY_DIMENSIONS = READINESS_DIMENSIONS
 
-class SuitabilityScores(BaseModel):
+
+class ReadinessScores(BaseModel):
     cognitive_load_intensity: int = Field(..., ge=0, le=3)
     input_data_structure: int = Field(..., ge=0, le=3)
     actionability_tool_coverage: int = Field(..., ge=0, le=3)
@@ -164,6 +206,10 @@ class SuitabilityScores(BaseModel):
     exception_rate: int = Field(..., ge=0, le=3)
     turn_taking_complexity: int = Field(..., ge=0, le=3)
     latency_constraints: int = Field(..., ge=0, le=3)
+
+
+# Keep old name as alias for backward compatibility
+SuitabilityScores = ReadinessScores
 
 
 # ─── Process Visualisation ────────────────────────────────────────────────────
@@ -198,7 +244,8 @@ class ProcessStepRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ClusterProcessStepRead(BaseModel):
+class ScopeProcessStepRead(BaseModel):
+    """Links an agent scope to a process step."""
     id: uuid.UUID
     cluster_id: uuid.UUID
     process_step_id: uuid.UUID
@@ -206,7 +253,11 @@ class ClusterProcessStepRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# Keep old name as alias for backward compatibility
+ClusterProcessStepRead = ScopeProcessStepRead
+
+
 class ProcessFlowRead(BaseModel):
     use_case_id: uuid.UUID
     steps: list[ProcessStepRead]
-    cluster_steps: list[ClusterProcessStepRead]
+    cluster_steps: list[ScopeProcessStepRead]

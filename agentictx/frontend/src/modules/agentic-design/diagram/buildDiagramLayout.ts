@@ -4,7 +4,7 @@
  * Zone layout (all coordinates are left-edge / top-edge):
  *
  *   [Prompt nodes ── top row, centred, min 12px gap, no overlap]
- *                ↓ blue edges (jtd-cognitive)
+ *                ↓ blue edges (color-cognitive)
  *   [Input left] → [Agent centre] → [Tool L1] → [System L2]
  *    green edges     green edges    amber edges   amber edges
  *                ↓ green edges
@@ -66,8 +66,8 @@ const CONTENT_CENTER_X = (INPUT_X + SYS_X + SYS_W) / 2; // 580
 const IO_STYLE     = { stroke: "var(--accent-success)", strokeWidth: 2 };
 const IO_ARROW     = { type: MarkerType.ArrowClosed, color: "var(--accent-success)", width: 12, height: 12 };
 
-const PROMPT_STYLE = { stroke: "var(--jtd-cognitive)", strokeWidth: 2 };
-const PROMPT_ARROW = { type: MarkerType.ArrowClosed, color: "var(--jtd-cognitive)", width: 12, height: 12 };
+const PROMPT_STYLE = { stroke: "var(--color-cognitive)", strokeWidth: 2 };
+const PROMPT_ARROW = { type: MarkerType.ArrowClosed, color: "var(--color-cognitive)", width: 12, height: 12 };
 
 const TOOL_STYLE   = { stroke: "var(--accent-amber)", strokeWidth: 2 };
 const TOOL_ARROW   = { type: MarkerType.ArrowClosed, color: "var(--accent-amber)", width: 12, height: 12 };
