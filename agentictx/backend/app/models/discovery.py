@@ -16,16 +16,26 @@ class RawInputType(str, Enum):
     note = "note"
 
 
-class JTDStatus(str, Enum):
+class ActivityStatus(str, Enum):
+    """Status for activities and cognitive load items."""
     proposed = "proposed"
     confirmed = "confirmed"
     rejected = "rejected"
 
 
-class ClusterStatus(str, Enum):
+# Keep old name as alias for backward compatibility with DB enum values
+JTDStatus = ActivityStatus
+
+
+class ScopeStatus(str, Enum):
+    """Status for agent scopes (delegation clusters)."""
     proposed = "proposed"
     confirmed = "confirmed"
     replaced = "replaced"
+
+
+# Keep old name as alias for backward compatibility with DB enum values
+ClusterStatus = ScopeStatus
 
 
 class MessageRole(str, Enum):
@@ -79,7 +89,8 @@ class ConversationMessage(Base):
     use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="conversation_messages")  # type: ignore[name-defined]
 
 
-class LivedJTD(Base):
+class Activity(Base):
+    """An activity (Job To Be Done) — what humans physically do."""
     __tablename__ = "lived_jtds"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -97,8 +108,8 @@ class LivedJTD(Base):
         ForeignKey("process_steps.id", ondelete="SET NULL"),
         nullable=True,
     )
-    status: Mapped[JTDStatus] = mapped_column(
-        String(50), default=JTDStatus.proposed, nullable=False
+    status: Mapped[ActivityStatus] = mapped_column(
+        String(50), default=ActivityStatus.proposed, nullable=False
     )
     # Advisory link — set by consultant or agent suggestion, not derived hierarchy
     linked_cognitive_jtd_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -119,10 +130,15 @@ class LivedJTD(Base):
         nullable=False,
     )
 
-    use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="lived_jtds")  # type: ignore[name-defined]
+    use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="activities")  # type: ignore[name-defined]
 
 
-class CognitiveJTD(Base):
+# Keep old name as alias so existing imports continue to work
+LivedJTD = Activity
+
+
+class CognitiveLoad(Base):
+    """A cognitive load item — the mental effort behind activities."""
     __tablename__ = "cognitive_jtds"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -141,10 +157,10 @@ class CognitiveJTD(Base):
         ForeignKey("process_steps.id", ondelete="SET NULL"),
         nullable=True,
     )
-    # Advisory associations — optional metadata linking to related Lived JTDs
+    # Advisory associations — optional metadata linking to related activities
     linked_lived_jtd_ids: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    status: Mapped[JTDStatus] = mapped_column(
-        String(50), default=JTDStatus.proposed, nullable=False
+    status: Mapped[ActivityStatus] = mapped_column(
+        String(50), default=ActivityStatus.proposed, nullable=False
     )
     # Provenance — link to the conversation turn that created this card
     source_message_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -161,10 +177,15 @@ class CognitiveJTD(Base):
         nullable=False,
     )
 
-    use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="cognitive_jtds")  # type: ignore[name-defined]
+    use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="cognitive_load_items")  # type: ignore[name-defined]
 
 
-class DelegationCluster(Base):
+# Keep old name as alias so existing imports continue to work
+CognitiveJTD = CognitiveLoad
+
+
+class AgentScope(Base):
+    """A delegation cluster / agent scope — groups activities for a single agent."""
     __tablename__ = "delegation_clusters"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -177,12 +198,12 @@ class DelegationCluster(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     purpose: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # Suitability scores: {dimension: score} — populated by suitability agent
+    # Readiness scores: {dimension: score} — populated by readiness agent
     suitability_scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # Consultant-confirmed delegation mode (Full Delegation | Supervised Execution | Assisted Mode | Human Only)
     delegation_mode: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    status: Mapped[ClusterStatus] = mapped_column(
-        String(50), default=ClusterStatus.proposed, nullable=False
+    status: Mapped[ScopeStatus] = mapped_column(
+        String(50), default=ScopeStatus.proposed, nullable=False
     )
     is_scored: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -195,18 +216,23 @@ class DelegationCluster(Base):
         nullable=False,
     )
 
-    use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="delegation_clusters")  # type: ignore[name-defined]
-    jtd_links: Mapped[list["ClusterJTDLink"]] = relationship(
-        "ClusterJTDLink", back_populates="cluster", cascade="all, delete-orphan"
+    use_case: Mapped["UseCase"] = relationship("UseCase", back_populates="agent_scopes")  # type: ignore[name-defined]
+    activity_links: Mapped[list["ClusterJTDLink"]] = relationship(
+        "ClusterJTDLink", back_populates="scope", cascade="all, delete-orphan"
     )
     cognitive_links: Mapped[list["ClusterCognitiveLink"]] = relationship(
-        "ClusterCognitiveLink", back_populates="cluster", cascade="all, delete-orphan"
+        "ClusterCognitiveLink", back_populates="scope", cascade="all, delete-orphan"
     )
 
 
-# ─── Cluster Link Tables ─────────────────────────────────────────────────────
+# Keep old name as alias so existing imports continue to work
+DelegationCluster = AgentScope
+
+
+# ─── Scope Link Tables ──────────────────────────────────────────────────────
 
 class ClusterJTDLink(Base):
+    """Links an activity to an agent scope (many-to-many)."""
     __tablename__ = "cluster_jtd_links"
     __table_args__ = (UniqueConstraint("cluster_id", "jtd_id", name="uq_cluster_jtd"),)
 
@@ -224,10 +250,11 @@ class ClusterJTDLink(Base):
         nullable=False,
     )
 
-    cluster: Mapped["DelegationCluster"] = relationship("DelegationCluster", back_populates="jtd_links")
+    scope: Mapped["AgentScope"] = relationship("AgentScope", back_populates="activity_links")
 
 
 class ClusterCognitiveLink(Base):
+    """Links a cognitive load item to an agent scope (many-to-many)."""
     __tablename__ = "cluster_cognitive_links"
     __table_args__ = (UniqueConstraint("cluster_id", "cognitive_load_id", name="uq_cluster_cognitive"),)
 
@@ -245,12 +272,13 @@ class ClusterCognitiveLink(Base):
         nullable=False,
     )
 
-    cluster: Mapped["DelegationCluster"] = relationship("DelegationCluster", back_populates="cognitive_links")
+    scope: Mapped["AgentScope"] = relationship("AgentScope", back_populates="cognitive_links")
 
 
 # ─── Process Visualisation ────────────────────────────────────────────────────
 
 class ProcessStep(Base):
+    """A process phase — the backbone structure activities and cognitive load attach to."""
     __tablename__ = "process_steps"
 
     id: Mapped[uuid.UUID] = mapped_column(

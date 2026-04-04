@@ -1,7 +1,8 @@
 """Discovery Agent — streaming Anthropic integration with tool use.
 
-Handles one WebSocket session per use case. Loads history from DB on connect,
-streams text + structured tool events back to the client.
+Handles one WebSocket session per use case. Extracts activities,
+cognitive load items, process phases, and agent scopes.
+Streams text + structured tool events back to the client.
 """
 import json
 import uuid
@@ -18,14 +19,14 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
     {
         "name": "propose_lived_jtds",
         "description": (
-            "Extract Lived JTDs — physical tasks, system interactions, and procedural steps "
-            "that humans perform in their environment. Call this whenever you identify new "
-            "task-level activity in the dialogue. Fully independent of Cognitive JTD extraction."
+            "Extract activities (Jobs To Be Done) — physical tasks, system interactions, and "
+            "procedural steps that humans perform in their environment. Call this whenever you "
+            "identify new task-level activity in the dialogue. Fully independent of cognitive load extraction."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "jtds": {
+                "items": {
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -48,20 +49,20 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
                     "minItems": 1,
                 }
             },
-            "required": ["jtds"],
+            "required": ["items"],
         },
     },
     {
         "name": "propose_cognitive_jtds",
         "description": (
-            "Extract Cognitive JTDs — reasoning, judgment, interpretation, and decision-making "
+            "Extract cognitive load items — reasoning, judgment, interpretation, and decision-making "
             "that humans perform mentally. Call this whenever you identify cognitive activity "
-            "in the dialogue. Fully independent of Lived JTD extraction."
+            "in the dialogue. Fully independent of activity extraction."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "jtds": {
+                "items": {
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -90,7 +91,7 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
                     "minItems": 1,
                 }
             },
-            "required": ["jtds"],
+            "required": ["items"],
         },
     },
     {
@@ -98,7 +99,7 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
         "description": (
             "Propose process phases — the major stages of the business process being analysed. "
             "Call this when you identify or confirm process phases from the conversation. Phases "
-            "are the structural backbone that all JTDs and Cognitive Load items anchor to. "
+            "are the structural backbone that all activities and cognitive load items anchor to. "
             "You may call this multiple times as new phases emerge."
         ),
         "input_schema": {
@@ -134,17 +135,17 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
     {
         "name": "propose_delegation_cluster",
         "description": (
-            "Propose a delegation cluster — a group of confirmed Cognitive JTDs that share "
-            "sufficient purpose and context to be handled by a single agent. Call ONLY when "
-            "enough confirmed material exists in both JTD streams. Cognitive JTDs are the "
-            "primary clustering unit; Lived JTD references are optional context."
+            "Propose an agent scope (delegation cluster) — a group of confirmed cognitive load items "
+            "that share sufficient purpose and context to be handled by a single agent. Call ONLY when "
+            "enough confirmed material exists in both streams. Cognitive load items are the "
+            "primary clustering unit; activity references are optional context."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "name": {
                     "type": "string",
-                    "description": "Short name for this delegation cluster (e.g. 'Claims Triage Agent')",
+                    "description": "Short name for this agent scope (e.g. 'Claims Triage Agent')",
                 },
                 "purpose": {
                     "type": "string",
@@ -153,16 +154,16 @@ DISCOVERY_TOOLS: list[dict[str, Any]] = [
                 "cognitive_jtd_refs": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Descriptions of the Cognitive JTDs included in this cluster",
+                    "description": "Descriptions of the cognitive load items included in this agent scope",
                 },
                 "lived_jtd_refs": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Optional: descriptions of associated Lived JTDs for context",
+                    "description": "Optional: descriptions of associated activities for context",
                 },
                 "rationale": {
                     "type": "string",
-                    "description": "Why these Cognitive JTDs belong together as a single delegation unit",
+                    "description": "Why these cognitive load items belong together as a single agent scope",
                 },
             },
             "required": ["name", "purpose", "cognitive_jtd_refs", "rationale"],
@@ -184,7 +185,7 @@ def _build_system_prompt(
     active_clusters: list[dict[str, str]] | None = None,
 ) -> str:
     """Extend the static system prompt with live engagement state so the agent
-    can evaluate completeness, phase awareness, and cluster gate/revision mode."""
+    can evaluate completeness, phase awareness, and scope gate/revision mode."""
     proposed_lived = total_lived_count - confirmed_lived_count - rejected_lived_count
     proposed_cognitive = total_cognitive_count - confirmed_cognitive_count - rejected_cognitive_count
 
@@ -193,7 +194,7 @@ def _build_system_prompt(
     # 1. Extracted Material
     state += "\n### Extracted Material\n"
     state += (
-        f"- JTDs: {confirmed_lived_count} confirmed, {proposed_lived} proposed, "
+        f"- Activities: {confirmed_lived_count} confirmed, {proposed_lived} proposed, "
         f"{rejected_lived_count} rejected (total {total_lived_count})\n"
         f"- Cognitive Load: {confirmed_cognitive_count} confirmed, {proposed_cognitive} proposed, "
         f"{rejected_cognitive_count} rejected (total {total_cognitive_count})\n"
@@ -209,29 +210,29 @@ def _build_system_prompt(
             "priority — ask about the major stages of the process.\n"
         )
 
-    # 3. Existing Delegation Clusters
-    state += "\n### Existing Delegation Clusters\n"
+    # 3. Existing Agent Scopes
+    state += "\n### Existing Agent Scopes\n"
     if active_clusters:
         for c in active_clusters:
             state += f"- {c['name']} (status: {c['status']})\n"
         state += (
             "\nYou are in REVISION MODE. The consultant may give feedback on these "
-            "clusters — split, merge, rename, or reassign. Act on feedback directly "
+            "agent scopes — split, merge, rename, or reassign. Act on feedback directly "
             "and propose only the revised set.\n"
         )
     else:
         state += "None proposed yet.\n"
 
-    # 4. Cluster Gate
+    # 4. Scope Gate
     if (
         confirmed_lived_count >= 3
         and confirmed_cognitive_count >= 3
         and not active_clusters
     ):
         state += (
-            "\n### Cluster Gate\n"
+            "\n### Scope Gate\n"
             "The gate condition is met — sufficient confirmed material exists in both "
-            "streams. You should proactively suggest proposing delegation clusters "
+            "streams. You should proactively suggest proposing agent scopes "
             "in your next conversational response.\n"
         )
 
@@ -262,10 +263,10 @@ async def run_discovery_stream(
 
     Yields dicts with 'type' and associated fields:
     - {"type": "text_delta", "delta": str}
-    - {"type": "lived_jtds_proposed", "jtds": list}
-    - {"type": "cognitive_jtds_proposed", "jtds": list}
+    - {"type": "activities_proposed", "items": list}  (activities)
+    - {"type": "cognitive_load_proposed", "items": list}  (cognitive load items)
     - {"type": "process_phases_proposed", "phases": list}
-    - {"type": "cluster_proposed", "cluster": dict}
+    - {"type": "cluster_proposed", "cluster": dict}  (agent scope)
     - {"type": "message_complete", "full_content": list}
     - {"type": "error", "message": str}
     """
@@ -361,13 +362,13 @@ async def run_discovery_stream(
                             tool_name = current_tool_use["name"]
                             if tool_name == "propose_lived_jtds":
                                 yield {
-                                    "type": "lived_jtds_proposed",
-                                    "jtds": tool_input.get("jtds", []),
+                                    "type": "activities_proposed",
+                                    "items": tool_input.get("items", []),
                                 }
                             elif tool_name == "propose_cognitive_jtds":
                                 yield {
-                                    "type": "cognitive_jtds_proposed",
-                                    "jtds": tool_input.get("jtds", []),
+                                    "type": "cognitive_load_proposed",
+                                    "items": tool_input.get("items", []),
                                 }
                             elif tool_name == "propose_process_phases":
                                 yield {

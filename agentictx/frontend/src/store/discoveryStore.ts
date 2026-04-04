@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import type {
+  Activity,
+  AgentScope,
   ChatMessage,
-  CognitiveJTD,
-  DelegationCluster,
-  LivedJTD,
+  CognitiveLoad,
   ProcessFlow,
-  ProcessStep,
+  Phase,
 } from "@/types/discovery";
 
 interface DiscoveryState {
@@ -15,15 +15,15 @@ interface DiscoveryState {
   isStreaming: boolean;
 
   // Cognitive map columns — fed by WS events and API loads
-  livedJTDs: LivedJTD[];
-  cognitiveJTDs: CognitiveJTD[];
-  delegationClusters: DelegationCluster[];
+  activities: Activity[];
+  cognitiveLoadItems: CognitiveLoad[];
+  agentScopes: AgentScope[];
 
   // Process visualisation
   processFlow: ProcessFlow | null;
 
-  // Cluster column highlight (pulse animation)
-  clusterColumnHighlight: boolean;
+  // Scope column highlight (pulse animation)
+  scopeColumnHighlight: boolean;
 
   // Clustering banner guard — true once the auto-prompt has fired, prevents re-fire
   clusteringProposed: boolean;
@@ -37,9 +37,9 @@ interface DiscoveryState {
   completeActivityItem: (tool_name: string, summary: string) => void;
   clearActivityItems: () => void;
 
-  // Cluster selection highlighting
-  selectedClusterId: string | null;
-  setSelectedClusterId: (id: string | null) => void;
+  // Agent scope selection highlighting
+  selectedScopeId: string | null;
+  setSelectedScopeId: (id: string | null) => void;
 
   // Actions — conversation
   addChatMessage: (msg: ChatMessage) => void;
@@ -49,21 +49,21 @@ interface DiscoveryState {
   setIsStreaming: (v: boolean) => void;
 
   // Actions — map columns
-  addLivedJTDs: (jtds: LivedJTD[]) => void;
-  updateLivedJTD: (jtd: LivedJTD) => void;
-  removeLivedJTD: (id: string) => void;
+  addActivities: (items: Activity[]) => void;
+  updateActivity: (item: Activity) => void;
+  removeActivity: (id: string) => void;
 
-  addCognitiveJTDs: (jtds: CognitiveJTD[]) => void;
-  updateCognitiveJTD: (jtd: CognitiveJTD) => void;
-  removeCognitiveJTD: (id: string) => void;
+  addCognitiveLoadItems: (items: CognitiveLoad[]) => void;
+  updateCognitiveLoad: (item: CognitiveLoad) => void;
+  removeCognitiveLoad: (id: string) => void;
 
-  addDelegationCluster: (cluster: DelegationCluster) => void;
-  updateDelegationCluster: (cluster: DelegationCluster) => void;
-  removeDelegationCluster: (id: string) => void;
-  markClustersReplaced: () => void;
+  addAgentScope: (scope: AgentScope) => void;
+  updateAgentScope: (scope: AgentScope) => void;
+  removeAgentScope: (id: string) => void;
+  markScopesReplaced: () => void;
 
-  // Cluster highlight & guard
-  setClusterColumnHighlight: (v: boolean) => void;
+  // Scope highlight & guard
+  setScopeColumnHighlight: (v: boolean) => void;
   setClusteringProposed: (v: boolean) => void;
 
   // Provenance scroll
@@ -71,13 +71,13 @@ interface DiscoveryState {
 
   // Process flow
   setProcessFlow: (flow: ProcessFlow | null) => void;
-  addProcessSteps: (steps: ProcessStep[]) => void;
+  addProcessSteps: (steps: Phase[]) => void;
 
   // Hydrate from full map API response
   hydrate: (data: {
-    livedJTDs: LivedJTD[];
-    cognitiveJTDs: CognitiveJTD[];
-    delegationClusters: DelegationCluster[];
+    activities: Activity[];
+    cognitiveLoadItems: CognitiveLoad[];
+    agentScopes: AgentScope[];
     chatMessages: ChatMessage[];
   }) => void;
 
@@ -89,14 +89,14 @@ const initialState = {
   chatMessages: [],
   streamingText: "",
   isStreaming: false,
-  livedJTDs: [],
-  cognitiveJTDs: [],
-  delegationClusters: [],
+  activities: [],
+  cognitiveLoadItems: [],
+  agentScopes: [],
   processFlow: null as ProcessFlow | null,
-  clusterColumnHighlight: false,
+  scopeColumnHighlight: false,
   clusteringProposed: false,
   scrollToMessageId: null as string | null,
-  selectedClusterId: null as string | null,
+  selectedScopeId: null as string | null,
   activityItems: [] as Array<{ tool_name: string; status: "running" | "done"; summary?: string }>,
 };
 
@@ -133,70 +133,70 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
 
   setIsStreaming: (v) => set({ isStreaming: v }),
 
-  // ── Lived JTDs ────────────────────────────────────────────────────────────
+  // ── Activities ─────────────────────────────────────────────────────────────
 
-  addLivedJTDs: (jtds) =>
-    set((s) => ({ livedJTDs: [...s.livedJTDs, ...jtds] })),
+  addActivities: (items) =>
+    set((s) => ({ activities: [...s.activities, ...items] })),
 
-  updateLivedJTD: (jtd) =>
+  updateActivity: (item) =>
     set((s) => ({
-      livedJTDs: s.livedJTDs.map((j) => (j.id === jtd.id ? jtd : j)),
+      activities: s.activities.map((j) => (j.id === item.id ? item : j)),
     })),
 
-  removeLivedJTD: (id) =>
-    set((s) => ({ livedJTDs: s.livedJTDs.filter((j) => j.id !== id) })),
+  removeActivity: (id) =>
+    set((s) => ({ activities: s.activities.filter((j) => j.id !== id) })),
 
-  // ── Cognitive JTDs ────────────────────────────────────────────────────────
+  // ── Cognitive Load Items ──────────────────────────────────────────────────
 
-  addCognitiveJTDs: (jtds) =>
-    set((s) => ({ cognitiveJTDs: [...s.cognitiveJTDs, ...jtds] })),
+  addCognitiveLoadItems: (items) =>
+    set((s) => ({ cognitiveLoadItems: [...s.cognitiveLoadItems, ...items] })),
 
-  updateCognitiveJTD: (jtd) =>
+  updateCognitiveLoad: (item) =>
     set((s) => ({
-      cognitiveJTDs: s.cognitiveJTDs.map((j) => (j.id === jtd.id ? jtd : j)),
+      cognitiveLoadItems: s.cognitiveLoadItems.map((j) => (j.id === item.id ? item : j)),
     })),
 
-  removeCognitiveJTD: (id) =>
-    set((s) => ({ cognitiveJTDs: s.cognitiveJTDs.filter((j) => j.id !== id) })),
+  removeCognitiveLoad: (id) =>
+    set((s) => ({ cognitiveLoadItems: s.cognitiveLoadItems.filter((j) => j.id !== id) })),
 
-  // ── Delegation Clusters ───────────────────────────────────────────────────
+  // ── Agent Scopes ──────────────────────────────────────────────────────────
 
-  addDelegationCluster: (cluster) =>
-    set((s) => ({ delegationClusters: [...s.delegationClusters, cluster] })),
+  addAgentScope: (scope) =>
+    set((s) => ({ agentScopes: [...s.agentScopes, scope] })),
 
-  updateDelegationCluster: (cluster) =>
+  updateAgentScope: (scope) =>
     set((s) => ({
-      delegationClusters: s.delegationClusters.map((c) =>
-        c.id === cluster.id ? cluster : c
+      agentScopes: s.agentScopes.map((c) =>
+        c.id === scope.id ? scope : c
       ),
     })),
 
-  removeDelegationCluster: (id) =>
+  removeAgentScope: (id) =>
     set((s) => {
-      const remaining = s.delegationClusters.filter((c) => c.id !== id);
+      const remaining = s.agentScopes.filter((c) => c.id !== id);
       const hasActive = remaining.some((c) => c.status !== "replaced");
       return {
-        delegationClusters: remaining,
+        agentScopes: remaining,
         ...(hasActive ? {} : { clusteringProposed: false }),
       };
     }),
 
-  markClustersReplaced: () =>
+  markScopesReplaced: () =>
     set((s) => ({
-      delegationClusters: s.delegationClusters.map((c) =>
+      agentScopes: s.agentScopes.map((c) =>
         c.status !== "replaced" ? { ...c, status: "replaced" as const } : c
       ),
     })),
 
-  // ── Cluster Highlight & Provenance ────────────────────────────────────────
+  // ── Scope Highlight & Provenance ──────────────────────────────────────────
 
-  setClusterColumnHighlight: (v) => set({ clusterColumnHighlight: v }),
+  setScopeColumnHighlight: (v) => set({ scopeColumnHighlight: v }),
 
   setClusteringProposed: (v) => set({ clusteringProposed: v }),
 
   setScrollToMessageId: (id) => set({ scrollToMessageId: id }),
 
-  setSelectedClusterId: (id) => set({ selectedClusterId: id }),
+  setSelectedScopeId: (id) => set({ selectedScopeId: id }),
 
   // ── Activity strip ─────────────────────────────────────────────────────────
 
@@ -243,13 +243,13 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
 
   // ── Hydrate ───────────────────────────────────────────────────────────────
 
-  hydrate: ({ livedJTDs, cognitiveJTDs, delegationClusters, chatMessages }) =>
+  hydrate: ({ activities, cognitiveLoadItems, agentScopes, chatMessages }) =>
     set({
-      livedJTDs,
-      cognitiveJTDs,
-      delegationClusters,
+      activities,
+      cognitiveLoadItems,
+      agentScopes,
       chatMessages,
-      clusteringProposed: delegationClusters.some((c) => c.status !== "replaced"),
+      clusteringProposed: agentScopes.some((c) => c.status !== "replaced"),
     }),
 
   // ── Reset ─────────────────────────────────────────────────────────────────

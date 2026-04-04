@@ -182,13 +182,13 @@ export interface WSTextDelta {
 }
 
 export interface WSActivitiesProposed {
-  type: "lived_jtds_proposed";
-  jtds: Activity[];
+  type: "activities_proposed";
+  items: Activity[];
 }
 
 export interface WSCognitiveLoadProposed {
-  type: "cognitive_jtds_proposed";
-  jtds: CognitiveLoad[];
+  type: "cognitive_load_proposed";
+  items: CognitiveLoad[];
 }
 
 export interface WSAgentScopeProposed {
@@ -246,7 +246,7 @@ export type WSServerEvent =
   | WSToolCallStarted
   | WSToolCallCompleted;
 
-// Backward compatibility aliases for WS events
+// Backward compatibility aliases for WS events (kept for any external consumers)
 export type WSLivedJTDsProposed = WSActivitiesProposed;
 export type WSCognitiveJTDsProposed = WSCognitiveLoadProposed;
 export type WSClusterProposed = WSAgentScopeProposed;

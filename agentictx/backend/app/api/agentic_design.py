@@ -347,45 +347,45 @@ async def _get_use_case_name(db: AsyncSession, uc_id: uuid.UUID) -> str | None:
 
 
 async def _build_cluster_context(db: AsyncSession, uc_id: uuid.UUID) -> list[dict[str, Any]]:
-    """Load delegation clusters enriched with their JTD descriptions."""
-    clusters = await discovery_service.list_delegation_clusters(db, uc_id)
-    lived_jtds = await discovery_service.list_lived_jtds(db, uc_id)
-    cognitive_jtds = await discovery_service.list_cognitive_jtds(db, uc_id)
+    """Load agent scopes enriched with their activity and cognitive load descriptions."""
+    scopes = await discovery_service.list_agent_scopes(db, uc_id)
+    activities = await discovery_service.list_activities(db, uc_id)
+    cognitive_items = await discovery_service.list_cognitive_load_items(db, uc_id)
 
-    lived_by_desc = {j.description: j for j in lived_jtds}
-    cognitive_by_desc = {j.description: j for j in cognitive_jtds}
+    activity_by_desc = {a.description: a for a in activities}
+    cognitive_by_desc = {c.description: c for c in cognitive_items}
 
     result: list[dict[str, Any]] = []
-    for cluster in clusters:
+    for scope in scopes:
         cognitive_context: list[dict[str, Any]] = []
-        for ref in (cluster.cognitive_jtd_ids or []):
-            jtd = cognitive_by_desc.get(ref)
-            if jtd:
+        for ref in (scope.cognitive_jtd_ids or []):
+            item = cognitive_by_desc.get(ref)
+            if item:
                 cognitive_context.append({
-                    "description": jtd.description,
-                    "cognitive_zone": jtd.cognitive_zone,
-                    "load_intensity": jtd.load_intensity,
+                    "description": item.description,
+                    "cognitive_zone": item.cognitive_zone,
+                    "load_intensity": item.load_intensity,
                 })
             else:
                 cognitive_context.append({"description": ref})
 
-        lived_context: list[dict[str, Any]] = []
-        for ref in (cluster.lived_jtd_ids or []):
-            jtd = lived_by_desc.get(ref)
-            if jtd:
-                lived_context.append({
-                    "description": jtd.description,
-                    "system_context": jtd.system_context,
+        activity_context: list[dict[str, Any]] = []
+        for ref in (scope.lived_jtd_ids or []):
+            activity = activity_by_desc.get(ref)
+            if activity:
+                activity_context.append({
+                    "description": activity.description,
+                    "system_context": activity.system_context,
                 })
             else:
-                lived_context.append({"description": ref})
+                activity_context.append({"description": ref})
 
         result.append({
-            "name": cluster.name,
-            "purpose": cluster.purpose,
+            "name": scope.name,
+            "purpose": scope.purpose,
             "cognitive_jtds": cognitive_context,
-            "lived_jtds": lived_context,
-            "suitability_scores": cluster.suitability_scores,
+            "lived_jtds": activity_context,
+            "suitability_scores": scope.suitability_scores,
         })
 
     return result

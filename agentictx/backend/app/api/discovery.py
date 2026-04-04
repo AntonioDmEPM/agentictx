@@ -1,4 +1,4 @@
-"""Discovery API — REST routes for file upload + JTD/cluster CRUD, and WebSocket handler.
+"""Discovery API — REST routes for file upload + activity/scope CRUD, and WebSocket handler.
 
 All REST routes return ResponseEnvelope[T] except 204 DELETE endpoints.
 WebSocket at WS /api/v1/use-cases/{uc_id}/ws
@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, WebSock
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.discovery_agent import run_discovery_stream
-from app.agents.suitability_agent import score_cluster
+from app.agents.suitability_agent import score_scope
 from app.core.database import AsyncSessionLocal, get_db
 from app.models.discovery import MessageRole, RawInputType
 from app.modules.discovery import service
@@ -86,10 +86,10 @@ async def get_discovery(uc_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     return ResponseEnvelope(data=cognitive_map)
 
 
-# ─── Lived JTDs ──────────────────────────────────────────────────────────────
+# ─── Activities ──────────────────────────────────────────────────────────────
 
 @router.post(
-    "/{uc_id}/lived-jtds",
+    "/{uc_id}/activities",
     response_model=ResponseEnvelope[LivedJTDRead],
     status_code=status.HTTP_201_CREATED,
 )
@@ -98,8 +98,8 @@ async def create_lived_jtd(
     payload: LivedJTDCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    """Manually create a Lived JTD (consultant direct edit, bypasses agent)."""
-    jtd = await service.create_lived_jtd(
+    """Manually create an activity (consultant direct edit, bypasses agent)."""
+    activity = await service.create_activity(
         db,
         use_case_id=uc_id,
         description=payload.description,
@@ -108,11 +108,11 @@ async def create_lived_jtd(
         status="confirmed",
     )
     await db.commit()
-    return ResponseEnvelope(data=jtd)
+    return ResponseEnvelope(data=activity)
 
 
 @router.patch(
-    "/{uc_id}/lived-jtds/{jtd_id}",
+    "/{uc_id}/activities/{jtd_id}",
     response_model=ResponseEnvelope[LivedJTDRead],
 )
 async def update_lived_jtd(
@@ -121,27 +121,27 @@ async def update_lived_jtd(
     payload: LivedJTDUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    jtd = await service.update_lived_jtd(db, uc_id, jtd_id, payload)
-    if jtd is None:
-        raise HTTPException(status_code=404, detail="Lived JTD not found")
-    return ResponseEnvelope(data=jtd)
+    activity = await service.update_activity(db, uc_id, jtd_id, payload)
+    if activity is None:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    return ResponseEnvelope(data=activity)
 
 
-@router.delete("/{uc_id}/lived-jtds/{jtd_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{uc_id}/activities/{jtd_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_lived_jtd(
     uc_id: uuid.UUID,
     jtd_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    deleted = await service.delete_lived_jtd(db, uc_id, jtd_id)
+    deleted = await service.delete_activity(db, uc_id, jtd_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Lived JTD not found")
+        raise HTTPException(status_code=404, detail="Activity not found")
 
 
-# ─── Cognitive JTDs ──────────────────────────────────────────────────────────
+# ─── Cognitive Load ──────────────────────────────────────────────────────────
 
 @router.post(
-    "/{uc_id}/cognitive-jtds",
+    "/{uc_id}/cognitive-load",
     response_model=ResponseEnvelope[CognitiveJTDRead],
     status_code=status.HTTP_201_CREATED,
 )
@@ -150,8 +150,8 @@ async def create_cognitive_jtd(
     payload: CognitiveJTDCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    """Manually create a Cognitive JTD (consultant direct edit, bypasses agent)."""
-    jtd = await service.create_cognitive_jtd(
+    """Manually create a cognitive load item (consultant direct edit, bypasses agent)."""
+    item = await service.create_cognitive_load(
         db,
         use_case_id=uc_id,
         description=payload.description,
@@ -160,11 +160,11 @@ async def create_cognitive_jtd(
         status="confirmed",
     )
     await db.commit()
-    return ResponseEnvelope(data=jtd)
+    return ResponseEnvelope(data=item)
 
 
 @router.patch(
-    "/{uc_id}/cognitive-jtds/{jtd_id}",
+    "/{uc_id}/cognitive-load/{jtd_id}",
     response_model=ResponseEnvelope[CognitiveJTDRead],
 )
 async def update_cognitive_jtd(
@@ -173,24 +173,24 @@ async def update_cognitive_jtd(
     payload: CognitiveJTDUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    jtd = await service.update_cognitive_jtd(db, uc_id, jtd_id, payload)
-    if jtd is None:
-        raise HTTPException(status_code=404, detail="Cognitive JTD not found")
-    return ResponseEnvelope(data=jtd)
+    item = await service.update_cognitive_load(db, uc_id, jtd_id, payload)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Cognitive load item not found")
+    return ResponseEnvelope(data=item)
 
 
-@router.delete("/{uc_id}/cognitive-jtds/{jtd_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{uc_id}/cognitive-load/{jtd_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_cognitive_jtd(
     uc_id: uuid.UUID,
     jtd_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    deleted = await service.delete_cognitive_jtd(db, uc_id, jtd_id)
+    deleted = await service.delete_cognitive_load(db, uc_id, jtd_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Cognitive JTD not found")
+        raise HTTPException(status_code=404, detail="Cognitive load item not found")
 
 
-# ─── Delegation Clusters ──────────────────────────────────────────────────────
+# ─── Agent Scopes (Delegation Clusters) ──────────────────────────────────────
 
 @router.patch(
     "/{uc_id}/clusters/{cluster_id}",
@@ -202,10 +202,10 @@ async def update_cluster(
     payload: DelegationClusterUpdate,
     db: AsyncSession = Depends(get_db),
 ):
-    cluster = await service.update_delegation_cluster(db, uc_id, cluster_id, payload)
-    if cluster is None:
-        raise HTTPException(status_code=404, detail="Delegation cluster not found")
-    return ResponseEnvelope(data=cluster)
+    scope = await service.update_agent_scope(db, uc_id, cluster_id, payload)
+    if scope is None:
+        raise HTTPException(status_code=404, detail="Agent scope not found")
+    return ResponseEnvelope(data=scope)
 
 
 @router.delete("/{uc_id}/clusters/{cluster_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -214,50 +214,50 @@ async def delete_cluster(
     cluster_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    deleted = await service.delete_delegation_cluster(db, uc_id, cluster_id)
+    deleted = await service.delete_agent_scope(db, uc_id, cluster_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Delegation cluster not found")
+        raise HTTPException(status_code=404, detail="Agent scope not found")
 
 
 # ─── Auto-rescore helper ─────────────────────────────────────────────────────
 
-async def _auto_rescore_cluster(
+async def _auto_rescore_scope(
     db: AsyncSession,
     uc_id: uuid.UUID,
-    cluster_id: uuid.UUID,
+    scope_id: uuid.UUID,
 ) -> None:
-    """Re-run suitability scoring for a cluster that has already been scored.
+    """Re-run readiness scoring for an agent scope that has already been scored.
 
-    Called automatically after membership edits. Silently skips if the cluster
+    Called automatically after membership edits. Silently skips if the scope
     is not yet scored (is_scored=False) or if the scoring agent fails.
     """
-    cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
-    if cluster is None or not cluster.is_scored:
+    scope = await service.get_agent_scope(db, uc_id, scope_id)
+    if scope is None or not scope.is_scored:
         return
 
-    all_cognitive = await service.list_cognitive_jtds(db, uc_id)
-    all_lived = await service.list_lived_jtds(db, uc_id)
+    all_cognitive = await service.list_cognitive_load_items(db, uc_id)
+    all_activities = await service.list_activities(db, uc_id)
 
     cognitive_context = [
-        {"description": j.description, "cognitive_zone": j.cognitive_zone, "load_intensity": j.load_intensity}
-        for j in all_cognitive
-        if j.status in ("confirmed", "proposed")
+        {"description": item.description, "cognitive_zone": item.cognitive_zone, "load_intensity": item.load_intensity}
+        for item in all_cognitive
+        if item.status in ("confirmed", "proposed")
     ]
-    lived_context = [
-        {"description": j.description, "system_context": j.system_context}
-        for j in all_lived
-        if j.status in ("confirmed", "proposed")
+    activity_context = [
+        {"description": a.description, "system_context": a.system_context}
+        for a in all_activities
+        if a.status in ("confirmed", "proposed")
     ]
 
     try:
-        scores = await score_cluster(
-            cluster_id=cluster_id,
-            cluster_name=cluster.name,
-            cluster_purpose=cluster.purpose,
-            cognitive_jtds=cognitive_context,
-            lived_jtds=lived_context,
+        scores = await score_scope(
+            scope_id=scope_id,
+            scope_name=scope.name,
+            scope_purpose=scope.purpose,
+            cognitive_items=cognitive_context,
+            activities=activity_context,
         )
-        await service.apply_suitability_scores(db, uc_id, cluster_id, scores)
+        await service.apply_readiness_scores(db, uc_id, scope_id, scores)
     except (ValueError, Exception):
         # Scoring failure should not block membership edits
         pass
@@ -266,7 +266,7 @@ async def _auto_rescore_cluster(
 # ─── Cluster Membership Editing ──────────────────────────────────────────────
 
 @router.put(
-    "/{uc_id}/clusters/{cluster_id}/lived-jtds/{jtd_id}",
+    "/{uc_id}/clusters/{cluster_id}/activities/{jtd_id}",
     response_model=ResponseEnvelope[DelegationClusterRead],
 )
 async def add_cluster_lived_jtd(
@@ -275,18 +275,18 @@ async def add_cluster_lived_jtd(
     jtd_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    """Add a Lived JTD to a delegation cluster."""
-    await service.add_cluster_jtd_link(db, cluster_id, jtd_id)
-    await _auto_rescore_cluster(db, uc_id, cluster_id)
-    cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
-    if cluster is None:
-        raise HTTPException(status_code=404, detail="Delegation cluster not found")
+    """Add an activity to an agent scope."""
+    await service.add_scope_activity_link(db, cluster_id, jtd_id)
+    await _auto_rescore_scope(db, uc_id, cluster_id)
+    scope = await service.get_agent_scope(db, uc_id, cluster_id)
+    if scope is None:
+        raise HTTPException(status_code=404, detail="Agent scope not found")
     await db.commit()
-    return ResponseEnvelope(data=cluster)
+    return ResponseEnvelope(data=scope)
 
 
 @router.delete(
-    "/{uc_id}/clusters/{cluster_id}/lived-jtds/{jtd_id}",
+    "/{uc_id}/clusters/{cluster_id}/activities/{jtd_id}",
     response_model=ResponseEnvelope[DelegationClusterRead],
 )
 async def remove_cluster_lived_jtd(
@@ -295,20 +295,20 @@ async def remove_cluster_lived_jtd(
     jtd_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove a Lived JTD from a delegation cluster."""
-    removed = await service.remove_cluster_jtd_link(db, cluster_id, jtd_id)
+    """Remove an activity from an agent scope."""
+    removed = await service.remove_scope_activity_link(db, cluster_id, jtd_id)
     if not removed:
         raise HTTPException(status_code=404, detail="Link not found")
-    await _auto_rescore_cluster(db, uc_id, cluster_id)
-    cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
-    if cluster is None:
-        raise HTTPException(status_code=404, detail="Delegation cluster not found")
+    await _auto_rescore_scope(db, uc_id, cluster_id)
+    scope = await service.get_agent_scope(db, uc_id, cluster_id)
+    if scope is None:
+        raise HTTPException(status_code=404, detail="Agent scope not found")
     await db.commit()
-    return ResponseEnvelope(data=cluster)
+    return ResponseEnvelope(data=scope)
 
 
 @router.put(
-    "/{uc_id}/clusters/{cluster_id}/cognitive-jtds/{jtd_id}",
+    "/{uc_id}/clusters/{cluster_id}/cognitive-load/{jtd_id}",
     response_model=ResponseEnvelope[DelegationClusterRead],
 )
 async def add_cluster_cognitive_jtd(
@@ -317,18 +317,18 @@ async def add_cluster_cognitive_jtd(
     jtd_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    """Add a Cognitive Load item to a delegation cluster."""
-    await service.add_cluster_cognitive_link(db, cluster_id, jtd_id)
-    await _auto_rescore_cluster(db, uc_id, cluster_id)
-    cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
-    if cluster is None:
-        raise HTTPException(status_code=404, detail="Delegation cluster not found")
+    """Add a Cognitive Load item to an agent scope."""
+    await service.add_scope_cognitive_link(db, cluster_id, jtd_id)
+    await _auto_rescore_scope(db, uc_id, cluster_id)
+    scope = await service.get_agent_scope(db, uc_id, cluster_id)
+    if scope is None:
+        raise HTTPException(status_code=404, detail="Agent scope not found")
     await db.commit()
-    return ResponseEnvelope(data=cluster)
+    return ResponseEnvelope(data=scope)
 
 
 @router.delete(
-    "/{uc_id}/clusters/{cluster_id}/cognitive-jtds/{jtd_id}",
+    "/{uc_id}/clusters/{cluster_id}/cognitive-load/{jtd_id}",
     response_model=ResponseEnvelope[DelegationClusterRead],
 )
 async def remove_cluster_cognitive_jtd(
@@ -337,16 +337,16 @@ async def remove_cluster_cognitive_jtd(
     jtd_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove a Cognitive Load item from a delegation cluster."""
-    removed = await service.remove_cluster_cognitive_link(db, cluster_id, jtd_id)
+    """Remove a Cognitive Load item from an agent scope."""
+    removed = await service.remove_scope_cognitive_link(db, cluster_id, jtd_id)
     if not removed:
         raise HTTPException(status_code=404, detail="Link not found")
-    await _auto_rescore_cluster(db, uc_id, cluster_id)
-    cluster = await service.get_delegation_cluster(db, uc_id, cluster_id)
-    if cluster is None:
-        raise HTTPException(status_code=404, detail="Delegation cluster not found")
+    await _auto_rescore_scope(db, uc_id, cluster_id)
+    scope = await service.get_agent_scope(db, uc_id, cluster_id)
+    if scope is None:
+        raise HTTPException(status_code=404, detail="Agent scope not found")
     await db.commit()
-    return ResponseEnvelope(data=cluster)
+    return ResponseEnvelope(data=scope)
 
 
 @router.post(
@@ -358,42 +358,40 @@ async def score_delegation_cluster(
     cluster_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger suitability scoring for a delegation cluster."""
-    # Load cluster
-    clusters = await service.list_delegation_clusters(db, uc_id)
-    cluster = next((c for c in clusters if c.id == cluster_id), None)
-    if cluster is None:
-        raise HTTPException(status_code=404, detail="Delegation cluster not found")
+    """Trigger readiness scoring for an agent scope."""
+    # Load agent scope
+    scopes = await service.list_agent_scopes(db, uc_id)
+    scope = next((s for s in scopes if s.id == cluster_id), None)
+    if scope is None:
+        raise HTTPException(status_code=404, detail="Agent scope not found")
 
-    # Load all confirmed JTDs as scoring context.
-    # cognitive_jtd_ids may hold descriptions (from agent output) or UUIDs (after consultant linking).
-    # We pass all confirmed JTDs — the scoring agent uses cluster name/purpose to identify scope.
-    all_cognitive = await service.list_cognitive_jtds(db, uc_id)
-    all_lived = await service.list_lived_jtds(db, uc_id)
+    # Load all confirmed items as scoring context.
+    all_cognitive = await service.list_cognitive_load_items(db, uc_id)
+    all_activities = await service.list_activities(db, uc_id)
 
     cognitive_context = [
-        {"description": j.description, "cognitive_zone": j.cognitive_zone, "load_intensity": j.load_intensity}
-        for j in all_cognitive
-        if j.status in ("confirmed", "proposed")
+        {"description": item.description, "cognitive_zone": item.cognitive_zone, "load_intensity": item.load_intensity}
+        for item in all_cognitive
+        if item.status in ("confirmed", "proposed")
     ]
-    lived_context = [
-        {"description": j.description, "system_context": j.system_context}
-        for j in all_lived
-        if j.status in ("confirmed", "proposed")
+    activity_context = [
+        {"description": a.description, "system_context": a.system_context}
+        for a in all_activities
+        if a.status in ("confirmed", "proposed")
     ]
 
     try:
-        scores = await score_cluster(
-            cluster_id=cluster_id,
-            cluster_name=cluster.name,
-            cluster_purpose=cluster.purpose,
-            cognitive_jtds=cognitive_context,
-            lived_jtds=lived_context,
+        scores = await score_scope(
+            scope_id=cluster_id,
+            scope_name=scope.name,
+            scope_purpose=scope.purpose,
+            cognitive_items=cognitive_context,
+            activities=activity_context,
         )
     except ValueError as e:
         raise HTTPException(status_code=502, detail=str(e))
 
-    updated = await service.apply_suitability_scores(db, uc_id, cluster_id, scores)
+    updated = await service.apply_readiness_scores(db, uc_id, cluster_id, scores)
     return ResponseEnvelope(data=updated)
 
 
@@ -404,7 +402,7 @@ async def score_delegation_cluster(
     response_model=ResponseEnvelope[ProcessFlowRead],
 )
 async def get_process_flow(uc_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    """Return the full process flow (steps, JTD links, cluster assignments) for a use case."""
+    """Return the full process flow (steps, scope assignments) for a use case."""
     flow = await service.get_process_flow(db, uc_id)
     return ResponseEnvelope(data=flow)
 
@@ -467,7 +465,7 @@ async def assign_step_to_cluster(
     step_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    cs = await service.assign_step_to_cluster(db, cluster_id, step_id)
+    cs = await service.assign_step_to_scope(db, cluster_id, step_id)
     await db.commit()
     return ResponseEnvelope(data=cs)
 
@@ -482,9 +480,9 @@ async def remove_step_from_cluster(
     step_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    deleted = await service.remove_step_from_cluster(db, cluster_id, step_id)
+    deleted = await service.remove_step_from_scope(db, cluster_id, step_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Cluster step assignment not found")
+        raise HTTPException(status_code=404, detail="Scope step assignment not found")
     await db.commit()
 
 
@@ -498,7 +496,7 @@ async def reset_discovery(
     uc_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    """Reset all Discovery data for a use case — clusters, JTDs, phases, messages.
+    """Reset all Discovery data for a use case — scopes, activities, phases, messages.
 
     Preserves the engagement and use case shell. Developer utility for rapid iteration.
     Only available when APP_ENV=development.
@@ -568,8 +566,8 @@ async def discovery_websocket(
 
     Server → Client events:
       {"type": "text_delta", "delta": "..."}
-      {"type": "lived_jtds_proposed", "jtds": [...]}
-      {"type": "cognitive_jtds_proposed", "jtds": [...]}
+      {"type": "activities_proposed", "items": [...]}
+      {"type": "cognitive_load_proposed", "items": [...]}
       {"type": "process_phases_proposed", "phases": [...]}
       {"type": "cluster_proposed", "cluster": {...}}
       {"type": "message_complete", "message_id": "..."}
@@ -608,18 +606,18 @@ async def _process_agent_stream(
 ) -> None:
     """Shared stream processor for user_message and file_processed flows.
 
-    Handles provenance tracking (two-phase: collect JTD IDs mid-stream, backfill
-    source_message_id after message_complete) and cluster superseding (mark
-    existing clusters as 'replaced' before first new cluster in a stream).
+    Handles provenance tracking (two-phase: collect activity IDs mid-stream, backfill
+    source_message_id after message_complete) and scope superseding (mark
+    existing scopes as 'replaced' before first new scope in a stream).
 
-    Also handles phase auto-linking: when the agent includes phase_name on a JTD
-    extraction, the handler looks up the matching process step and creates a
-    ProcessStepJTDLink record automatically.
+    Also handles phase auto-linking: when the agent includes phase_name on an
+    activity extraction, the handler looks up the matching process step and creates a
+    link record automatically.
     """
-    created_lived_ids: list[uuid.UUID] = []
+    created_activity_ids: list[uuid.UUID] = []
     created_cognitive_ids: list[uuid.UUID] = []
-    clusters_replaced = False
-    clusters_proposed_count = 0
+    scopes_replaced = False
+    scopes_proposed_count = 0
 
     # Phase name → step ID lookup for auto-linking.
     # Seeded from existing steps; updated if new phases arrive mid-stream.
@@ -649,47 +647,47 @@ async def _process_agent_stream(
         elif event_type == "text_delta":
             await websocket.send_text(json.dumps(event))
 
-        elif event_type == "lived_jtds_proposed":
-            saved_jtds = []
-            for jtd_data in event["jtds"]:
-                phase_id = _resolve_phase_id(jtd_data.get("phase_name"))
-                saved = await service.create_lived_jtd(
+        elif event_type == "activities_proposed":
+            saved_activities = []
+            for activity_data in event["items"]:
+                phase_id = _resolve_phase_id(activity_data.get("phase_name"))
+                saved = await service.create_activity(
                     db,
                     use_case_id=uc_id,
-                    description=jtd_data["description"],
-                    system_context=jtd_data.get("system_context"),
+                    description=activity_data["description"],
+                    system_context=activity_data.get("system_context"),
                     process_phase_id=phase_id,
                 )
-                created_lived_ids.append(saved.id)
-                saved_jtds.append(saved.model_dump(mode="json"))
+                created_activity_ids.append(saved.id)
+                saved_activities.append(saved.model_dump(mode="json"))
             await db.commit()
-            await websocket.send_text(json.dumps({"type": "lived_jtds_proposed", "jtds": saved_jtds}))
+            await websocket.send_text(json.dumps({"type": "activities_proposed", "items": saved_activities}))
             await websocket.send_text(json.dumps({
                 "type": "tool_call_completed",
                 "tool_name": "propose_lived_jtds",
-                "summary": f"{len(saved_jtds)} JTD{'s' if len(saved_jtds) != 1 else ''} added to cognitive map",
+                "summary": f"{len(saved_activities)} activit{'ies' if len(saved_activities) != 1 else 'y'} added to cognitive map",
             }))
 
-        elif event_type == "cognitive_jtds_proposed":
-            saved_jtds = []
-            for jtd_data in event["jtds"]:
-                phase_id = _resolve_phase_id(jtd_data.get("phase_name"))
-                saved = await service.create_cognitive_jtd(
+        elif event_type == "cognitive_load_proposed":
+            saved_items = []
+            for item_data in event["items"]:
+                phase_id = _resolve_phase_id(item_data.get("phase_name"))
+                saved = await service.create_cognitive_load(
                     db,
                     use_case_id=uc_id,
-                    description=jtd_data["description"],
-                    cognitive_zone=jtd_data.get("cognitive_zone"),
-                    load_intensity=jtd_data.get("load_intensity"),
+                    description=item_data["description"],
+                    cognitive_zone=item_data.get("cognitive_zone"),
+                    load_intensity=item_data.get("load_intensity"),
                     process_phase_id=phase_id,
                 )
                 created_cognitive_ids.append(saved.id)
-                saved_jtds.append(saved.model_dump(mode="json"))
+                saved_items.append(saved.model_dump(mode="json"))
             await db.commit()
-            await websocket.send_text(json.dumps({"type": "cognitive_jtds_proposed", "jtds": saved_jtds}))
+            await websocket.send_text(json.dumps({"type": "cognitive_load_proposed", "items": saved_items}))
             await websocket.send_text(json.dumps({
                 "type": "tool_call_completed",
                 "tool_name": "propose_cognitive_jtds",
-                "summary": f"{len(saved_jtds)} cognitive load item{'s' if len(saved_jtds) != 1 else ''} added",
+                "summary": f"{len(saved_items)} cognitive load item{'s' if len(saved_items) != 1 else ''} added",
             }))
 
         elif event_type == "process_phases_proposed":
@@ -702,7 +700,7 @@ async def _process_agent_stream(
                 )
                 saved = await service.create_process_step(db, uc_id, payload)
                 saved_phases.append(saved.model_dump(mode="json"))
-                # Update lookup so JTDs proposed later in this stream can link
+                # Update lookup so activities proposed later in this stream can link
                 phase_name_to_id[phase_data["name"].lower()] = saved.id
             await db.commit()
             await websocket.send_text(
@@ -715,41 +713,41 @@ async def _process_agent_stream(
             }))
 
         elif event_type == "cluster_proposed":
-            # Mark existing clusters as replaced before creating the first new one
-            if not clusters_replaced:
-                replaced_count = await service.mark_clusters_replaced(db, uc_id)
+            # Mark existing scopes as replaced before creating the first new one
+            if not scopes_replaced:
+                replaced_count = await service.mark_scopes_replaced(db, uc_id)
                 await db.commit()
                 if replaced_count > 0:
                     await websocket.send_text(json.dumps({
                         "type": "clusters_replaced",
                         "count": replaced_count,
                     }))
-                clusters_replaced = True
+                scopes_replaced = True
 
-            cluster_data = event["cluster"]
-            saved_cluster = await service.create_delegation_cluster(
+            scope_data = event["cluster"]
+            saved_scope = await service.create_agent_scope(
                 db,
                 use_case_id=uc_id,
-                name=cluster_data["name"],
-                purpose=cluster_data.get("purpose"),
-                cognitive_jtd_refs=cluster_data.get("cognitive_jtd_refs", []),
-                lived_jtd_refs=cluster_data.get("lived_jtd_refs"),
+                name=scope_data["name"],
+                purpose=scope_data.get("purpose"),
+                cognitive_jtd_refs=scope_data.get("cognitive_jtd_refs", []),
+                lived_jtd_refs=scope_data.get("lived_jtd_refs"),
             )
             await db.commit()
-            clusters_proposed_count += 1
+            scopes_proposed_count += 1
             await websocket.send_text(
-                json.dumps({"type": "cluster_proposed", "cluster": saved_cluster.model_dump(mode="json")})
+                json.dumps({"type": "cluster_proposed", "cluster": saved_scope.model_dump(mode="json")})
             )
             await websocket.send_text(json.dumps({
                 "type": "tool_call_completed",
                 "tool_name": "propose_delegation_cluster",
-                "summary": f"Cluster \"{saved_cluster.name}\" proposed",
+                "summary": f"Agent scope \"{saved_scope.name}\" proposed",
             }))
 
         elif event_type == "message_complete":
             full_assistant_content = event["full_content"]
             # Strip tool_use blocks before saving — only persist text for
-            # conversation display.  Tool outputs (JTDs, phases, clusters)
+            # conversation display.  Tool outputs (activities, phases, scopes)
             # are already saved to their own domain tables.  Keeping
             # tool_use blocks in the DB creates a fragile tool_use /
             # tool_result pairing requirement that causes Anthropic API 400
@@ -761,19 +759,19 @@ async def _process_agent_stream(
             saved_msg = await service.save_message(
                 db, uc_id, MessageRole.assistant, text_only_content
             )
-            # Backfill provenance on all JTDs created during this stream
-            if created_lived_ids or created_cognitive_ids:
-                await service.backfill_jtd_source_message(
-                    db, created_lived_ids, created_cognitive_ids, saved_msg.id
+            # Backfill provenance on all activities/cognitive load items created during this stream
+            if created_activity_ids or created_cognitive_ids:
+                await service.backfill_source_message(
+                    db, created_activity_ids, created_cognitive_ids, saved_msg.id
                 )
 
             await db.commit()
             await websocket.send_text(
                 json.dumps({"type": "message_complete", "message_id": str(saved_msg.id)})
             )
-            # Send system notification if clusters were proposed
-            if clusters_proposed_count > 0:
-                notification_text = f"{clusters_proposed_count} cluster{'s' if clusters_proposed_count != 1 else ''} proposed"
+            # Send system notification if agent scopes were proposed
+            if scopes_proposed_count > 0:
+                notification_text = f"{scopes_proposed_count} agent scope{'s' if scopes_proposed_count != 1 else ''} proposed"
                 await websocket.send_text(json.dumps({
                     "type": "system_notification",
                     "text": notification_text,
@@ -821,8 +819,8 @@ async def _handle_ws_session(
         # Gate: reject if another request is already in flight for this use case
         if msg_type in ("user_message", "file_processed") and lock.locked():
             user_text = msg.get("content", "") if msg_type == "user_message" else ""
-            if isinstance(user_text, str) and "propose delegation clusters" in user_text.lower():
-                error_msg = "Cluster generation already in progress."
+            if isinstance(user_text, str) and ("propose delegation clusters" in user_text.lower() or "propose agent scopes" in user_text.lower()):
+                error_msg = "Agent scope generation already in progress."
             else:
                 error_msg = "A request is already in progress. Please wait."
             await websocket.send_text(json.dumps({
@@ -844,24 +842,24 @@ async def _handle_ws_session(
                 await service.save_message(db, uc_id, MessageRole.user, user_content)
                 await db.commit()
 
-                all_lived = await service.list_lived_jtds(db, uc_id)
-                all_cognitive = await service.list_cognitive_jtds(db, uc_id)
-                confirmed_lived = sum(1 for j in all_lived if j.status == "confirmed")
-                confirmed_cognitive = sum(1 for j in all_cognitive if j.status == "confirmed")
+                all_activities = await service.list_activities(db, uc_id)
+                all_cognitive = await service.list_cognitive_load_items(db, uc_id)
+                confirmed_lived = sum(1 for a in all_activities if a.status == "confirmed")
+                confirmed_cognitive = sum(1 for c in all_cognitive if c.status == "confirmed")
 
-                total_lived = len(all_lived)
+                total_lived = len(all_activities)
                 total_cognitive = len(all_cognitive)
-                rejected_lived = sum(1 for j in all_lived if j.status == "rejected")
-                rejected_cognitive = sum(1 for j in all_cognitive if j.status == "rejected")
+                rejected_lived = sum(1 for a in all_activities if a.status == "rejected")
+                rejected_cognitive = sum(1 for c in all_cognitive if c.status == "rejected")
 
                 process_flow = await service.get_process_flow(db, uc_id)
                 process_step_names = [s.name for s in process_flow.steps]
 
-                all_clusters = await service.list_delegation_clusters(db, uc_id)
-                active_clusters = [
-                    {"name": c.name, "status": c.status}
-                    for c in all_clusters
-                    if c.status in ("proposed", "confirmed")
+                all_scopes = await service.list_agent_scopes(db, uc_id)
+                active_scopes = [
+                    {"name": s.name, "status": s.status}
+                    for s in all_scopes
+                    if s.status in ("proposed", "confirmed")
                 ]
 
                 await _process_agent_stream(
@@ -869,7 +867,7 @@ async def _handle_ws_session(
                     pending_tool_results, confirmed_lived, confirmed_cognitive,
                     total_lived, total_cognitive,
                     rejected_lived, rejected_cognitive,
-                    process_step_names, active_clusters,
+                    process_step_names, active_scopes,
                 )
 
         elif msg_type == "file_processed":
@@ -937,24 +935,24 @@ async def _handle_ws_session(
                 await service.save_message(db, uc_id, MessageRole.user, user_content)
                 await db.commit()
 
-                all_lived = await service.list_lived_jtds(db, uc_id)
-                all_cognitive = await service.list_cognitive_jtds(db, uc_id)
-                confirmed_lived = sum(1 for j in all_lived if j.status == "confirmed")
-                confirmed_cognitive = sum(1 for j in all_cognitive if j.status == "confirmed")
+                all_activities = await service.list_activities(db, uc_id)
+                all_cognitive = await service.list_cognitive_load_items(db, uc_id)
+                confirmed_lived = sum(1 for a in all_activities if a.status == "confirmed")
+                confirmed_cognitive = sum(1 for c in all_cognitive if c.status == "confirmed")
 
-                total_lived = len(all_lived)
+                total_lived = len(all_activities)
                 total_cognitive = len(all_cognitive)
-                rejected_lived = sum(1 for j in all_lived if j.status == "rejected")
-                rejected_cognitive = sum(1 for j in all_cognitive if j.status == "rejected")
+                rejected_lived = sum(1 for a in all_activities if a.status == "rejected")
+                rejected_cognitive = sum(1 for c in all_cognitive if c.status == "rejected")
 
                 process_flow = await service.get_process_flow(db, uc_id)
                 process_step_names = [s.name for s in process_flow.steps]
 
-                all_clusters = await service.list_delegation_clusters(db, uc_id)
-                active_clusters = [
-                    {"name": c.name, "status": c.status}
-                    for c in all_clusters
-                    if c.status in ("proposed", "confirmed")
+                all_scopes = await service.list_agent_scopes(db, uc_id)
+                active_scopes = [
+                    {"name": s.name, "status": s.status}
+                    for s in all_scopes
+                    if s.status in ("proposed", "confirmed")
                 ]
 
                 await _process_agent_stream(
@@ -962,7 +960,7 @@ async def _handle_ws_session(
                     pending_tool_results, confirmed_lived, confirmed_cognitive,
                     total_lived, total_cognitive,
                     rejected_lived, rejected_cognitive,
-                    process_step_names, active_clusters,
+                    process_step_names, active_scopes,
                 )
 
         else:
@@ -1124,8 +1122,8 @@ def _build_anthropic_history(
     """Convert ConversationMessageRead list to Anthropic messages format.
 
     All tool_use and tool_result blocks are stripped during reconstruction.
-    Tool outputs (JTDs, phases, clusters) are persisted in their own domain
-    tables — keeping tool artifacts in the conversation history creates a
+    Tool outputs (activities, phases, agent scopes) are persisted in their own
+    domain tables — keeping tool artifacts in the conversation history creates a
     fragile pairing requirement that causes Anthropic API 400 errors.
 
     New assistant messages are saved text-only (tool_use stripped at write

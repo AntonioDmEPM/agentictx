@@ -2,7 +2,7 @@ import { useState } from "react";
 import { agenticDesignApi } from "@/api/agentic_design";
 import { useAgenticDesignStore } from "@/store/agenticDesignStore";
 import { AgentSpecCard, OpportunityCard } from "./AgentSpecCard";
-import type { DelegationCluster } from "@/types/discovery";
+import type { AgentScope } from "@/types/discovery";
 
 // ─── Collapse button ──────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ function CollapseBtn({ onClick, dir }: { onClick: () => void; dir: "left" | "rig
 
 interface SpecPanelProps {
   useCaseId: string;
-  clusters: DelegationCluster[];
+  clusters: AgentScope[];
   onViewDiagram: (specId: string) => void;
   onCollapse: () => void;
 }
@@ -89,8 +89,8 @@ export function SpecPanel({ useCaseId, clusters, onViewDiagram, onCollapse }: Sp
               onClick={handleDownloadArd}
               className="text-xs font-ui px-3 py-1 rounded-sm border transition-colors"
               style={{
-                color: "var(--jtd-agent)",
-                borderColor: "var(--jtd-agent)",
+                color: "var(--color-agent)",
+                borderColor: "var(--color-agent)",
               }}
             >
               Download ARD
@@ -116,8 +116,8 @@ export function SpecPanel({ useCaseId, clusters, onViewDiagram, onCollapse }: Sp
                   key={cluster.id}
                   className="text-xs font-ui px-2 py-0.5 rounded-sm"
                   style={{
-                    color: hasSpec ? "var(--jtd-agent)" : "var(--jtd-cluster)",
-                    border: `1px solid ${hasSpec ? "var(--jtd-agent)" : "var(--jtd-cluster)"}`,
+                    color: hasSpec ? "var(--color-agent)" : "var(--color-scope)",
+                    border: `1px solid ${hasSpec ? "var(--color-agent)" : "var(--color-scope)"}`,
                     opacity: 0.85,
                   }}
                 >

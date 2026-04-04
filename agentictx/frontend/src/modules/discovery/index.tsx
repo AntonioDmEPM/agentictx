@@ -147,9 +147,9 @@ export function DiscoveryModule() {
   useEffect(() => {
     if (!mapData) return;
     hydrate({
-      livedJTDs: mapData.lived_jtds,
-      cognitiveJTDs: mapData.cognitive_jtds,
-      delegationClusters: mapData.delegation_clusters,
+      activities: mapData.lived_jtds,
+      cognitiveLoadItems: mapData.cognitive_jtds,
+      agentScopes: mapData.delegation_clusters,
       chatMessages: mapData.conversation_messages.map((m) => ({
         id: m.id,
         role: m.role,

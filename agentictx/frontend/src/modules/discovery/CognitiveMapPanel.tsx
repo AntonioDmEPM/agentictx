@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { discoveryApi } from "@/api/discovery";
 import { useDiscoveryStore } from "@/store/discoveryStore";
-import type { CognitiveJTD, DelegationCluster, LivedJTD } from "@/types/discovery";
-import { CognitiveJTDCard, DelegationClusterCard, LivedJTDCard } from "./JTDCard";
+import type { Activity, AgentScope, CognitiveLoad } from "@/types/discovery";
+import { ActivityCard, AgentScopeCard, CognitiveLoadCard } from "./ActivityCard";
 
 interface CognitiveMapPanelProps {
   useCaseId: string;
@@ -58,7 +58,7 @@ function ColumnHeader({
 
 // ─── Inline create form ──────────────────────────────────────────────────────
 
-function CreateJTDForm({
+function CreateActivityForm({
   secondaryLabel,
   accentColor,
   onSave,
@@ -153,24 +153,24 @@ function AddButton({ onClick, accentColor }: { onClick: () => void; accentColor:
 
 export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
   const {
-    livedJTDs,
-    cognitiveJTDs,
-    delegationClusters,
+    activities,
+    cognitiveLoadItems,
+    agentScopes,
     processFlow,
-    clusterColumnHighlight,
+    scopeColumnHighlight,
     clusteringProposed,
-    selectedClusterId,
-    updateLivedJTD,
-    removeLivedJTD,
-    addLivedJTDs,
-    updateCognitiveJTD,
-    removeCognitiveJTD,
-    addCognitiveJTDs,
-    updateDelegationCluster,
+    selectedScopeId,
+    updateActivity,
+    removeActivity,
+    addActivities,
+    updateCognitiveLoad,
+    removeCognitiveLoad,
+    addCognitiveLoadItems,
+    updateAgentScope,
     addSystemMessage,
     setScrollToMessageId,
     setClusteringProposed,
-    setSelectedClusterId,
+    setSelectedScopeId,
   } = useDiscoveryStore();
 
   const [scoringId, setScoringId] = useState<string | null>(null);
@@ -190,51 +190,51 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
 
   // ── Sorted cards ───────────────────────────────────────────────────────────
 
-  const sortedLived = useMemo(() => sortByStatus(livedJTDs), [livedJTDs]);
-  const sortedCognitive = useMemo(() => sortByStatus(cognitiveJTDs), [cognitiveJTDs]);
+  const sortedActivities = useMemo(() => sortByStatus(activities), [activities]);
+  const sortedCognitiveLoad = useMemo(() => sortByStatus(cognitiveLoadItems), [cognitiveLoadItems]);
 
-  const confirmedLived  = useMemo(() => sortedLived.filter((j: LivedJTD) => j.status === "confirmed"),  [sortedLived]);
-  const proposedLived   = useMemo(() => sortedLived.filter((j: LivedJTD) => j.status === "proposed"),   [sortedLived]);
-  const rejectedLived   = useMemo(() => sortedLived.filter((j: LivedJTD) => j.status === "rejected"),   [sortedLived]);
-  const confirmedCog    = useMemo(() => sortedCognitive.filter((j: CognitiveJTD) => j.status === "confirmed"), [sortedCognitive]);
-  const proposedCog     = useMemo(() => sortedCognitive.filter((j: CognitiveJTD) => j.status === "proposed"),  [sortedCognitive]);
-  const rejectedCog     = useMemo(() => sortedCognitive.filter((j: CognitiveJTD) => j.status === "rejected"),  [sortedCognitive]);
+  const confirmedActivities  = useMemo(() => sortedActivities.filter((j: Activity) => j.status === "confirmed"),  [sortedActivities]);
+  const proposedActivities   = useMemo(() => sortedActivities.filter((j: Activity) => j.status === "proposed"),   [sortedActivities]);
+  const rejectedActivities   = useMemo(() => sortedActivities.filter((j: Activity) => j.status === "rejected"),   [sortedActivities]);
+  const confirmedCognitiveLoad    = useMemo(() => sortedCognitiveLoad.filter((j: CognitiveLoad) => j.status === "confirmed"), [sortedCognitiveLoad]);
+  const proposedCognitiveLoad     = useMemo(() => sortedCognitiveLoad.filter((j: CognitiveLoad) => j.status === "proposed"),  [sortedCognitiveLoad]);
+  const rejectedCognitiveLoad     = useMemo(() => sortedCognitiveLoad.filter((j: CognitiveLoad) => j.status === "rejected"),  [sortedCognitiveLoad]);
 
   // ── Confirmed items for membership editing ─────────────────────────────────
 
-  const confirmedLivedJTDs = useMemo(
-    () => livedJTDs.filter((j) => j.status === "confirmed"),
-    [livedJTDs]
+  const confirmedActivitiesForEdit = useMemo(
+    () => activities.filter((j) => j.status === "confirmed"),
+    [activities]
   );
-  const confirmedCognitiveJTDs = useMemo(
-    () => cognitiveJTDs.filter((j) => j.status === "confirmed"),
-    [cognitiveJTDs]
+  const confirmedCognitiveLoadForEdit = useMemo(
+    () => cognitiveLoadItems.filter((j) => j.status === "confirmed"),
+    [cognitiveLoadItems]
   );
 
   // ── Selected cluster member sets (for dimming) ─────────────────────────────
 
-  const selectedCluster = useMemo(
-    () => selectedClusterId ? delegationClusters.find((c) => c.id === selectedClusterId) ?? null : null,
-    [selectedClusterId, delegationClusters]
+  const selectedScope = useMemo(
+    () => selectedScopeId ? agentScopes.find((c) => c.id === selectedScopeId) ?? null : null,
+    [selectedScopeId, agentScopes]
   );
-  const selectedLivedIds = useMemo(
-    () => new Set(selectedCluster?.lived_jtd_ids ?? []),
-    [selectedCluster]
+  const selectedActivityIds = useMemo(
+    () => new Set(selectedScope?.lived_jtd_ids ?? []),
+    [selectedScope]
   );
   const selectedCognitiveIds = useMemo(
-    () => new Set(selectedCluster?.cognitive_jtd_ids ?? []),
-    [selectedCluster]
+    () => new Set(selectedScope?.cognitive_jtd_ids ?? []),
+    [selectedScope]
   );
 
-  // ── Split clusters into active vs replaced ─────────────────────────────────
+  // ── Split scopes into active vs replaced ───────────────────────────────────
 
-  const activeClusters = useMemo(
-    () => delegationClusters.filter((c) => c.status !== "replaced"),
-    [delegationClusters]
+  const activeScopes = useMemo(
+    () => agentScopes.filter((c) => c.status !== "replaced"),
+    [agentScopes]
   );
-  const replacedClusters = useMemo(
-    () => delegationClusters.filter((c) => c.status === "replaced"),
-    [delegationClusters]
+  const replacedScopes = useMemo(
+    () => agentScopes.filter((c) => c.status === "replaced"),
+    [agentScopes]
   );
 
   // ── Auto-prompt: check if all non-rejected cards are confirmed ─────────────
@@ -242,18 +242,18 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
   const prevAllConfirmedRef = useRef(false);
 
   useEffect(() => {
-    const nonRejectedLived = livedJTDs.filter((j) => j.status !== "rejected");
-    const nonRejectedCognitive = cognitiveJTDs.filter((j) => j.status !== "rejected");
-    const allLivedConfirmed = nonRejectedLived.length > 0 && nonRejectedLived.every((j) => j.status === "confirmed");
+    const nonRejectedActivities = activities.filter((j) => j.status !== "rejected");
+    const nonRejectedCognitive = cognitiveLoadItems.filter((j) => j.status !== "rejected");
+    const allActivitiesConfirmed = nonRejectedActivities.length > 0 && nonRejectedActivities.every((j) => j.status === "confirmed");
     const allCognitiveConfirmed = nonRejectedCognitive.length > 0 && nonRejectedCognitive.every((j) => j.status === "confirmed");
-    const allConfirmed = allLivedConfirmed && allCognitiveConfirmed;
-    const noClusters = activeClusters.length === 0;
+    const allConfirmed = allActivitiesConfirmed && allCognitiveConfirmed;
+    const noScopes = activeScopes.length === 0;
 
     // Phase coverage gate: confirmed cards must span at least 2 distinct phases
     let hasPhaseCoverage = false;
     if (allConfirmed) {
       const coveredPhases = new Set<string>();
-      for (const j of nonRejectedLived) {
+      for (const j of nonRejectedActivities) {
         if (j.process_phase_id) coveredPhases.add(j.process_phase_id);
       }
       for (const j of nonRejectedCognitive) {
@@ -264,15 +264,15 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
 
     const gateReady = allConfirmed && hasPhaseCoverage;
 
-    if (gateReady && noClusters && !clusteringProposed && !prevAllConfirmedRef.current) {
+    if (gateReady && noScopes && !clusteringProposed && !prevAllConfirmedRef.current) {
       setClusteringProposed(true);
-      const text = `You have confirmed ${nonRejectedLived.length} activit${nonRejectedLived.length !== 1 ? "ies" : "y"} and ${nonRejectedCognitive.length} cognitive load item${nonRejectedCognitive.length !== 1 ? "s" : ""}. I have enough material to propose agent scopes. Shall I proceed?`;
+      const text = `You have confirmed ${nonRejectedActivities.length} activit${nonRejectedActivities.length !== 1 ? "ies" : "y"} and ${nonRejectedCognitive.length} cognitive load item${nonRejectedCognitive.length !== 1 ? "s" : ""}. I have enough material to propose agent scopes. Shall I proceed?`;
       addSystemMessage(text);
       // Persist so it survives navigation
       discoveryApi.saveSystemMessage(useCaseId, text).catch(console.error);
     }
     prevAllConfirmedRef.current = gateReady;
-  }, [livedJTDs, cognitiveJTDs, activeClusters.length, clusteringProposed, addSystemMessage, setClusteringProposed]);
+  }, [activities, cognitiveLoadItems, activeScopes.length, clusteringProposed, addSystemMessage, setClusteringProposed]);
 
   // ── Provenance scroll helper ───────────────────────────────────────────────
 
@@ -280,172 +280,172 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
     setScrollToMessageId(messageId);
   };
 
-  // ── Lived JTD actions ────────────────────────────────────────────────────
+  // ── Activity actions ─────────────────────────────────────────────────────
 
-  const confirmLivedJTD = async (id: string) => {
+  const confirmActivityItem = async (id: string) => {
     try {
-      const updated = await discoveryApi.updateLivedJTD(useCaseId, id, { status: "confirmed" });
-      updateLivedJTD(updated);
+      const updated = await discoveryApi.updateActivity(useCaseId, id, { status: "confirmed" });
+      updateActivity(updated);
     } catch (e) {
-      console.error("Failed to confirm Lived JTD:", e);
+      console.error("Failed to confirm activity:", e);
     }
   };
 
-  const rejectLivedJTD = async (id: string) => {
+  const rejectActivityItem = async (id: string) => {
     try {
-      const updated = await discoveryApi.updateLivedJTD(useCaseId, id, { status: "rejected" });
-      updateLivedJTD(updated);
+      const updated = await discoveryApi.updateActivity(useCaseId, id, { status: "rejected" });
+      updateActivity(updated);
     } catch (e) {
-      console.error("Failed to reject Lived JTD:", e);
+      console.error("Failed to reject activity:", e);
     }
   };
 
-  const unconfirmLivedJTD = async (id: string) => {
+  const unconfirmActivityItem = async (id: string) => {
     try {
-      const updated = await discoveryApi.updateLivedJTD(useCaseId, id, { status: "proposed" });
-      updateLivedJTD(updated);
+      const updated = await discoveryApi.updateActivity(useCaseId, id, { status: "proposed" });
+      updateActivity(updated);
     } catch (e) {
-      console.error("Failed to unconfirm Lived JTD:", e);
+      console.error("Failed to unconfirm activity:", e);
     }
   };
 
-  const reinstateLivedJTD = async (id: string) => {
+  const reinstateActivityItem = async (id: string) => {
     try {
-      const updated = await discoveryApi.updateLivedJTD(useCaseId, id, { status: "proposed" });
-      updateLivedJTD(updated);
+      const updated = await discoveryApi.updateActivity(useCaseId, id, { status: "proposed" });
+      updateActivity(updated);
     } catch (e) {
-      console.error("Failed to reinstate Lived JTD:", e);
+      console.error("Failed to reinstate activity:", e);
     }
   };
 
-  const updateLivedJTDFields = async (id: string, description: string, systemContext: string) => {
+  const updateActivityFields = async (id: string, description: string, systemContext: string) => {
     try {
-      const updated = await discoveryApi.updateLivedJTD(useCaseId, id, {
+      const updated = await discoveryApi.updateActivity(useCaseId, id, {
         description,
         system_context: systemContext || null,
         is_modified: true,
       });
-      updateLivedJTD(updated);
+      updateActivity(updated);
     } catch (e) {
-      console.error("Failed to update Lived JTD:", e);
+      console.error("Failed to update activity:", e);
     }
   };
 
-  const deleteLivedJTD = async (id: string) => {
+  const deleteActivityItem = async (id: string) => {
     try {
-      await discoveryApi.deleteLivedJTD(useCaseId, id);
-      removeLivedJTD(id);
+      await discoveryApi.deleteActivity(useCaseId, id);
+      removeActivity(id);
     } catch (e) {
-      console.error("Failed to delete Lived JTD:", e);
+      console.error("Failed to delete activity:", e);
     }
   };
 
-  const createLivedJTD = async (description: string, systemContext: string) => {
+  const createActivityItem = async (description: string, systemContext: string) => {
     try {
-      const created = await discoveryApi.createLivedJTD(useCaseId, {
+      const created = await discoveryApi.createActivity(useCaseId, {
         description,
         system_context: systemContext || null,
       });
-      addLivedJTDs([created]);
+      addActivities([created]);
       setCreatingLived(false);
     } catch (e) {
-      console.error("Failed to create Lived JTD:", e);
+      console.error("Failed to create activity:", e);
     }
   };
 
-  // ── Cognitive JTD actions ────────────────────────────────────────────────
+  // ── Cognitive Load actions ──────────────────────────────────────────────
 
-  const confirmCognitiveJTD = async (id: string) => {
+  const confirmCognitiveLoadItem = async (id: string) => {
     try {
-      const updated = await discoveryApi.updateCognitiveJTD(useCaseId, id, { status: "confirmed" });
-      updateCognitiveJTD(updated);
+      const updated = await discoveryApi.updateCognitiveLoad(useCaseId, id, { status: "confirmed" });
+      updateCognitiveLoad(updated);
     } catch (e) {
-      console.error("Failed to confirm Cognitive JTD:", e);
+      console.error("Failed to confirm cognitive load:", e);
     }
   };
 
-  const rejectCognitiveJTD = async (id: string) => {
+  const rejectCognitiveLoadItem = async (id: string) => {
     try {
-      const updated = await discoveryApi.updateCognitiveJTD(useCaseId, id, { status: "rejected" });
-      updateCognitiveJTD(updated);
+      const updated = await discoveryApi.updateCognitiveLoad(useCaseId, id, { status: "rejected" });
+      updateCognitiveLoad(updated);
     } catch (e) {
-      console.error("Failed to reject Cognitive JTD:", e);
+      console.error("Failed to reject cognitive load:", e);
     }
   };
 
-  const unconfirmCognitiveJTD = async (id: string) => {
+  const unconfirmCognitiveLoadItem = async (id: string) => {
     try {
-      const updated = await discoveryApi.updateCognitiveJTD(useCaseId, id, { status: "proposed" });
-      updateCognitiveJTD(updated);
+      const updated = await discoveryApi.updateCognitiveLoad(useCaseId, id, { status: "proposed" });
+      updateCognitiveLoad(updated);
     } catch (e) {
-      console.error("Failed to unconfirm Cognitive JTD:", e);
+      console.error("Failed to unconfirm cognitive load:", e);
     }
   };
 
-  const reinstateCognitiveJTD = async (id: string) => {
+  const reinstateCognitiveLoadItem = async (id: string) => {
     try {
-      const updated = await discoveryApi.updateCognitiveJTD(useCaseId, id, { status: "proposed" });
-      updateCognitiveJTD(updated);
+      const updated = await discoveryApi.updateCognitiveLoad(useCaseId, id, { status: "proposed" });
+      updateCognitiveLoad(updated);
     } catch (e) {
-      console.error("Failed to reinstate Cognitive JTD:", e);
+      console.error("Failed to reinstate cognitive load:", e);
     }
   };
 
-  const updateCognitiveJTDFields = async (id: string, description: string, cognitiveZone: string) => {
+  const updateCognitiveLoadFields = async (id: string, description: string, cognitiveZone: string) => {
     try {
-      const updated = await discoveryApi.updateCognitiveJTD(useCaseId, id, {
+      const updated = await discoveryApi.updateCognitiveLoad(useCaseId, id, {
         description,
         cognitive_zone: cognitiveZone || null,
         is_modified: true,
       });
-      updateCognitiveJTD(updated);
+      updateCognitiveLoad(updated);
     } catch (e) {
-      console.error("Failed to update Cognitive JTD:", e);
+      console.error("Failed to update cognitive load:", e);
     }
   };
 
-  const deleteCognitiveJTD = async (id: string) => {
+  const deleteCognitiveLoadItem = async (id: string) => {
     try {
-      await discoveryApi.deleteCognitiveJTD(useCaseId, id);
-      removeCognitiveJTD(id);
+      await discoveryApi.deleteCognitiveLoad(useCaseId, id);
+      removeCognitiveLoad(id);
     } catch (e) {
-      console.error("Failed to delete Cognitive JTD:", e);
+      console.error("Failed to delete cognitive load:", e);
     }
   };
 
-  const createCognitiveJTD = async (description: string, cognitiveZone: string) => {
+  const createCognitiveLoadItem = async (description: string, cognitiveZone: string) => {
     try {
-      const created = await discoveryApi.createCognitiveJTD(useCaseId, {
+      const created = await discoveryApi.createCognitiveLoad(useCaseId, {
         description,
         cognitive_zone: cognitiveZone || null,
       });
-      addCognitiveJTDs([created]);
+      addCognitiveLoadItems([created]);
       setCreatingCognitive(false);
     } catch (e) {
-      console.error("Failed to create Cognitive JTD:", e);
+      console.error("Failed to create cognitive load:", e);
     }
   };
 
-  // ── Cluster actions ──────────────────────────────────────────────────────
+  // ── Agent scope actions ──────────────────────────────────────────────────
 
-  const confirmCluster = async (id: string) => {
+  const confirmScope = async (id: string) => {
     try {
-      const cluster = delegationClusters.find((c) => c.id === id);
-      const newStatus = cluster?.status === "confirmed" ? "proposed" : "confirmed";
-      const updated = await discoveryApi.updateCluster(useCaseId, id, { status: newStatus as "proposed" | "confirmed" });
-      updateDelegationCluster(updated);
+      const scope = agentScopes.find((c) => c.id === id);
+      const newStatus = scope?.status === "confirmed" ? "proposed" : "confirmed";
+      const updated = await discoveryApi.updateScope(useCaseId, id, { status: newStatus as "proposed" | "confirmed" });
+      updateAgentScope(updated);
     } catch (e) {
-      console.error("Failed to toggle cluster confirmation:", e);
+      console.error("Failed to toggle scope confirmation:", e);
     }
   };
 
-  const scoreCluster = async (id: string) => {
+  const scoreScope = async (id: string) => {
     setScoringId(id);
     try {
-      const updated = await discoveryApi.scoreCluster(useCaseId, id);
-      updateDelegationCluster(updated);
+      const updated = await discoveryApi.scoreScope(useCaseId, id);
+      updateAgentScope(updated);
     } catch (e) {
-      console.error("Failed to score cluster:", e);
+      console.error("Failed to score scope:", e);
     } finally {
       setScoringId(null);
     }
@@ -453,100 +453,100 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
 
   const selectDelegationMode = async (id: string, mode: string) => {
     try {
-      const updated = await discoveryApi.updateCluster(useCaseId, id, { delegation_mode: mode });
-      updateDelegationCluster(updated);
+      const updated = await discoveryApi.updateScope(useCaseId, id, { delegation_mode: mode });
+      updateAgentScope(updated);
     } catch (e) {
       console.error("Failed to set delegation mode:", e);
     }
   };
 
-  // ── Cluster membership toggle ──────────────────────────────────────────────
+  // ── Scope membership toggle ────────────────────────────────────────────────
 
-  const toggleClusterMembership = async (clusterId: string, jtdId: string, type: "lived" | "cognitive", isMember: boolean) => {
+  const toggleScopeMembership = async (scopeId: string, itemId: string, type: "lived" | "cognitive", isMember: boolean) => {
     try {
-      let updated: DelegationCluster;
+      let updated: AgentScope;
       if (type === "lived") {
         if (isMember) {
-          updated = await discoveryApi.removeClusterLivedJTD(useCaseId, clusterId, jtdId);
+          updated = await discoveryApi.removeScopeActivity(useCaseId, scopeId, itemId);
         } else {
-          updated = await discoveryApi.addClusterLivedJTD(useCaseId, clusterId, jtdId);
+          updated = await discoveryApi.addScopeActivity(useCaseId, scopeId, itemId);
         }
       } else {
         if (isMember) {
-          updated = await discoveryApi.removeClusterCognitiveJTD(useCaseId, clusterId, jtdId);
+          updated = await discoveryApi.removeScopeCognitiveLoad(useCaseId, scopeId, itemId);
         } else {
-          updated = await discoveryApi.addClusterCognitiveJTD(useCaseId, clusterId, jtdId);
+          updated = await discoveryApi.addScopeCognitiveLoad(useCaseId, scopeId, itemId);
         }
       }
-      updateDelegationCluster(updated);
+      updateAgentScope(updated);
     } catch (e) {
-      console.error("Failed to toggle cluster membership:", e);
+      console.error("Failed to toggle scope membership:", e);
     }
   };
 
   // ── Render helpers ─────────────────────────────────────────────────────────
 
-  const renderLivedCard = (jtd: LivedJTD) => (
+  const renderActivityCard = (activity: Activity) => (
     <div
-      key={jtd.id}
-      className="jtd-card-enter"
+      key={activity.id}
+      className="card-enter"
       style={{ animation: "fadeIn 150ms ease-in" }}
     >
-      <LivedJTDCard
-        jtd={jtd}
-        phaseName={jtd.process_phase_id ? phaseNameMap.get(jtd.process_phase_id) ?? null : null}
-        dimmed={selectedClusterId !== null && !selectedLivedIds.has(jtd.id)}
-        onConfirm={() => confirmLivedJTD(jtd.id)}
-        onReject={jtd.status === "confirmed"
-          ? () => unconfirmLivedJTD(jtd.id)
-          : () => rejectLivedJTD(jtd.id)
+      <ActivityCard
+        activity={activity}
+        phaseName={activity.process_phase_id ? phaseNameMap.get(activity.process_phase_id) ?? null : null}
+        dimmed={selectedScopeId !== null && !selectedActivityIds.has(activity.id)}
+        onConfirm={() => confirmActivityItem(activity.id)}
+        onReject={activity.status === "confirmed"
+          ? () => unconfirmActivityItem(activity.id)
+          : () => rejectActivityItem(activity.id)
         }
-        onReinstate={() => reinstateLivedJTD(jtd.id)}
-        onUpdate={(desc, ctx) => updateLivedJTDFields(jtd.id, desc, ctx)}
-        onDelete={() => deleteLivedJTD(jtd.id)}
+        onReinstate={() => reinstateActivityItem(activity.id)}
+        onUpdate={(desc, ctx) => updateActivityFields(activity.id, desc, ctx)}
+        onDelete={() => deleteActivityItem(activity.id)}
         onScrollToSource={scrollToSource}
       />
     </div>
   );
 
-  const renderCognitiveCard = (jtd: CognitiveJTD) => (
+  const renderCognitiveCard = (item: CognitiveLoad) => (
     <div
-      key={jtd.id}
+      key={item.id}
       style={{ animation: "fadeIn 150ms ease-in" }}
     >
-      <CognitiveJTDCard
-        jtd={jtd}
-        phaseName={jtd.process_phase_id ? phaseNameMap.get(jtd.process_phase_id) ?? null : null}
-        dimmed={selectedClusterId !== null && !selectedCognitiveIds.has(jtd.id)}
-        onConfirm={() => confirmCognitiveJTD(jtd.id)}
-        onReject={jtd.status === "confirmed"
-          ? () => unconfirmCognitiveJTD(jtd.id)
-          : () => rejectCognitiveJTD(jtd.id)
+      <CognitiveLoadCard
+        item={item}
+        phaseName={item.process_phase_id ? phaseNameMap.get(item.process_phase_id) ?? null : null}
+        dimmed={selectedScopeId !== null && !selectedCognitiveIds.has(item.id)}
+        onConfirm={() => confirmCognitiveLoadItem(item.id)}
+        onReject={item.status === "confirmed"
+          ? () => unconfirmCognitiveLoadItem(item.id)
+          : () => rejectCognitiveLoadItem(item.id)
         }
-        onReinstate={() => reinstateCognitiveJTD(jtd.id)}
-        onUpdate={(desc, zone) => updateCognitiveJTDFields(jtd.id, desc, zone)}
-        onDelete={() => deleteCognitiveJTD(jtd.id)}
+        onReinstate={() => reinstateCognitiveLoadItem(item.id)}
+        onUpdate={(desc, zone) => updateCognitiveLoadFields(item.id, desc, zone)}
+        onDelete={() => deleteCognitiveLoadItem(item.id)}
         onScrollToSource={scrollToSource}
       />
     </div>
   );
 
-  const renderClusterCard = (cluster: DelegationCluster) => (
+  const renderScopeCard = (scope: AgentScope) => (
     <div
-      key={cluster.id}
+      key={scope.id}
       style={{ animation: "fadeIn 150ms ease-in" }}
     >
-      <DelegationClusterCard
-        cluster={cluster}
-        onConfirm={() => confirmCluster(cluster.id)}
-        onScore={() => scoreCluster(cluster.id)}
-        onSelectDelegationMode={(mode) => selectDelegationMode(cluster.id, mode)}
-        isScoring={scoringId === cluster.id}
-        isSelected={selectedClusterId === cluster.id}
-        onSelect={() => setSelectedClusterId(selectedClusterId === cluster.id ? null : cluster.id)}
-        confirmedLivedJTDs={confirmedLivedJTDs}
-        confirmedCognitiveJTDs={confirmedCognitiveJTDs}
-        onToggleMembership={(jtdId, type, isMember) => toggleClusterMembership(cluster.id, jtdId, type, isMember)}
+      <AgentScopeCard
+        cluster={scope}
+        onConfirm={() => confirmScope(scope.id)}
+        onScore={() => scoreScope(scope.id)}
+        onSelectDelegationMode={(mode) => selectDelegationMode(scope.id, mode)}
+        isScoring={scoringId === scope.id}
+        isSelected={selectedScopeId === scope.id}
+        onSelect={() => setSelectedScopeId(selectedScopeId === scope.id ? null : scope.id)}
+        confirmedActivities={confirmedActivitiesForEdit}
+        confirmedCognitiveLoad={confirmedCognitiveLoadForEdit}
+        onToggleMembership={(itemId, type, isMember) => toggleScopeMembership(scope.id, itemId, type, isMember)}
       />
     </div>
   );
@@ -561,110 +561,110 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* ── Column 1: Lived JTDs ─────────────────────────────────────────── */}
+      {/* ── Column 1: Activities ────────────────────────────────────────── */}
       <div
         className="flex flex-col w-1/3 border-r border-bg-border overflow-hidden"
         style={{ minWidth: 0 }}
-        onClick={() => selectedClusterId && setSelectedClusterId(null)}
+        onClick={() => selectedScopeId && setSelectedScopeId(null)}
       >
         <ColumnHeader
           label="Activities"
           subtitle="What people do — actions, decisions, system interactions"
-          count={livedJTDs.filter((j) => j.status !== "rejected").length}
-          accentColor="var(--jtd-lived)"
+          count={activities.filter((j) => j.status !== "rejected").length}
+          accentColor="var(--color-activity)"
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
-          {sortedLived.length === 0 && !creatingLived ? (
+          {sortedActivities.length === 0 && !creatingLived ? (
             <EmptyColumn label="Activities" />
           ) : (
             <>
-              <div className="flex flex-col gap-1">{confirmedLived.map(renderLivedCard)}</div>
-              {confirmedLived.length > 0 && proposedLived.length > 0 && (
+              <div className="flex flex-col gap-1">{confirmedActivities.map(renderActivityCard)}</div>
+              {confirmedActivities.length > 0 && proposedActivities.length > 0 && (
                 <hr style={{ borderColor: "var(--bg-border)", margin: "4px 0" }} />
               )}
-              <div className="flex flex-col gap-2">{proposedLived.map(renderLivedCard)}</div>
-              {rejectedLived.length > 0 && (proposedLived.length > 0 || confirmedLived.length > 0) && (
+              <div className="flex flex-col gap-2">{proposedActivities.map(renderActivityCard)}</div>
+              {rejectedActivities.length > 0 && (proposedActivities.length > 0 || confirmedActivities.length > 0) && (
                 <hr style={{ borderColor: "var(--bg-border)", margin: "4px 0" }} />
               )}
-              <div className="flex flex-col gap-1">{rejectedLived.map(renderLivedCard)}</div>
+              <div className="flex flex-col gap-1">{rejectedActivities.map(renderActivityCard)}</div>
             </>
           )}
           {creatingLived && (
-            <CreateJTDForm
+            <CreateActivityForm
               secondaryLabel="System context (optional)"
-              accentColor="var(--jtd-lived)"
-              onSave={createLivedJTD}
+              accentColor="var(--color-activity)"
+              onSave={createActivityItem}
               onCancel={() => setCreatingLived(false)}
             />
           )}
           {!creatingLived && (
-            <AddButton onClick={() => setCreatingLived(true)} accentColor="var(--jtd-lived)" />
+            <AddButton onClick={() => setCreatingLived(true)} accentColor="var(--color-activity)" />
           )}
         </div>
       </div>
 
-      {/* ── Column 2: Cognitive JTDs ─────────────────────────────────────── */}
+      {/* ── Column 2: Cognitive Load ─────────────────────────────────────── */}
       <div
         className="flex flex-col w-1/3 border-r border-bg-border overflow-hidden"
         style={{ minWidth: 0 }}
-        onClick={() => selectedClusterId && setSelectedClusterId(null)}
+        onClick={() => selectedScopeId && setSelectedScopeId(null)}
       >
         <ColumnHeader
           label="Cognitive Load"
           subtitle="Mental effort, judgment and decision-making"
-          count={cognitiveJTDs.filter((j) => j.status !== "rejected").length}
-          accentColor="var(--jtd-cognitive)"
+          count={cognitiveLoadItems.filter((j) => j.status !== "rejected").length}
+          accentColor="var(--color-cognitive)"
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
-          {sortedCognitive.length === 0 && !creatingCognitive ? (
+          {sortedCognitiveLoad.length === 0 && !creatingCognitive ? (
             <EmptyColumn label="Cognitive Load" />
           ) : (
             <>
-              <div className="flex flex-col gap-1">{confirmedCog.map(renderCognitiveCard)}</div>
-              {confirmedCog.length > 0 && proposedCog.length > 0 && (
+              <div className="flex flex-col gap-1">{confirmedCognitiveLoad.map(renderCognitiveCard)}</div>
+              {confirmedCognitiveLoad.length > 0 && proposedCognitiveLoad.length > 0 && (
                 <hr style={{ borderColor: "var(--bg-border)", margin: "4px 0" }} />
               )}
-              <div className="flex flex-col gap-2">{proposedCog.map(renderCognitiveCard)}</div>
-              {rejectedCog.length > 0 && (proposedCog.length > 0 || confirmedCog.length > 0) && (
+              <div className="flex flex-col gap-2">{proposedCognitiveLoad.map(renderCognitiveCard)}</div>
+              {rejectedCognitiveLoad.length > 0 && (proposedCognitiveLoad.length > 0 || confirmedCognitiveLoad.length > 0) && (
                 <hr style={{ borderColor: "var(--bg-border)", margin: "4px 0" }} />
               )}
-              <div className="flex flex-col gap-1">{rejectedCog.map(renderCognitiveCard)}</div>
+              <div className="flex flex-col gap-1">{rejectedCognitiveLoad.map(renderCognitiveCard)}</div>
             </>
           )}
           {creatingCognitive && (
-            <CreateJTDForm
+            <CreateActivityForm
               secondaryLabel="Cognitive zone (optional)"
-              accentColor="var(--jtd-cognitive)"
-              onSave={createCognitiveJTD}
+              accentColor="var(--color-cognitive)"
+              onSave={createCognitiveLoadItem}
               onCancel={() => setCreatingCognitive(false)}
             />
           )}
           {!creatingCognitive && (
-            <AddButton onClick={() => setCreatingCognitive(true)} accentColor="var(--jtd-cognitive)" />
+            <AddButton onClick={() => setCreatingCognitive(true)} accentColor="var(--color-cognitive)" />
           )}
         </div>
       </div>
 
-      {/* ── Column 3: Delegation Clusters ───────────────────────────────── */}
+      {/* ── Column 3: Agent Scopes ──────────────────────────────────────── */}
       <div
-        className={`flex flex-col w-1/3 overflow-hidden${clusterColumnHighlight ? " cluster-pulse" : ""}`}
+        className={`flex flex-col w-1/3 overflow-hidden${scopeColumnHighlight ? " cluster-pulse" : ""}`}
         style={{ minWidth: 0 }}
       >
         <ColumnHeader
           label="Agent Scopes"
           subtitle="Scoped work for each agent"
-          count={activeClusters.length}
-          accentColor="var(--jtd-cluster)"
+          count={activeScopes.length}
+          accentColor="var(--color-scope)"
         />
         <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2">
-          {activeClusters.length === 0 && replacedClusters.length === 0 ? (
+          {activeScopes.length === 0 && replacedScopes.length === 0 ? (
             <EmptyColumn label="Agent Scopes" />
           ) : (
             <>
-              {activeClusters.map(renderClusterCard)}
+              {activeScopes.map(renderScopeCard)}
 
-              {/* Replaced clusters — collapsed section */}
-              {replacedClusters.length > 0 && (
+              {/* Replaced scopes — collapsed section */}
+              {replacedScopes.length > 0 && (
                 <div className="mt-2 pt-2 border-t" style={{ borderColor: "var(--bg-border)" }}>
                   <button
                     onClick={() => setReplacedExpanded((v) => !v)}
@@ -672,11 +672,11 @@ export function CognitiveMapPanel({ useCaseId }: CognitiveMapPanelProps) {
                     style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                   >
                     <span>{replacedExpanded ? "▼" : "▶"}</span>
-                    <span>Previously proposed ({replacedClusters.length})</span>
+                    <span>Previously proposed ({replacedScopes.length})</span>
                   </button>
                   {replacedExpanded && (
                     <div className="flex flex-col gap-2" style={{ opacity: 0.5 }}>
-                      {replacedClusters.map(renderClusterCard)}
+                      {replacedScopes.map(renderScopeCard)}
                     </div>
                   )}
                 </div>

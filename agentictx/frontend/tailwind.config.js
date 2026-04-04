@@ -21,11 +21,11 @@ export default {
         "text-secondary": "#666666",  // warm gray
         "text-muted": "#999999",      // light warm gray
 
-        // JTD states — warm semantic palette
-        "jtd-lived": "#b07340",    // terracotta — Tasks
-        "jtd-cognitive": "#4a6fa5", // steel blue — Cognitive Load
-        "jtd-cluster": "#5a8a6a",  // deep green — Clusters
-        "jtd-agent": "#6b5b95",    // deep purple — Agents
+        // Semantic accent colors
+        "color-activity": "#b07340",  // terracotta — Tasks
+        "color-cognitive": "#4a6fa5", // steel blue — Cognitive Load
+        "color-scope": "#5a8a6a",     // deep green — Clusters
+        "color-agent": "#6b5b95",     // deep purple — Agents
       },
       fontFamily: {
         display: ['"Instrument Serif"', "Georgia", "serif"],

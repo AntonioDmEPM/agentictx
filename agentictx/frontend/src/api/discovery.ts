@@ -1,20 +1,20 @@
 import * as client from "./client";
 import type {
-  ClusterProcessStep,
-  CognitiveJTDCreate,
-  CognitiveJTDUpdate,
+  Activity,
+  ActivityCreate,
+  ActivityUpdate,
+  AgentScope,
+  AgentScopeUpdate,
+  CognitiveLoad,
+  CognitiveLoadCreate,
+  CognitiveLoadUpdate,
   CognitiveMap,
-  DelegationCluster,
-  DelegationClusterUpdate,
-  LivedJTD,
-  LivedJTDCreate,
-  LivedJTDUpdate,
-  CognitiveJTD,
+  Phase,
+  PhaseCreate,
+  PhaseUpdate,
   ProcessFlow,
-  ProcessStep,
-  ProcessStepCreate,
-  ProcessStepUpdate,
-  RawInput,
+  ScopePhaseLink,
+  SourceMaterial,
 } from "@/types/discovery";
 
 const BASE = (ucId: string) => `/use-cases/${ucId}`;
@@ -25,7 +25,7 @@ export const discoveryApi = {
     client.get<CognitiveMap>(`${BASE(ucId)}/discovery`),
 
   // ─── File upload ──────────────────────────────────────────────────────────
-  uploadFile: async (ucId: string, file: File): Promise<RawInput> => {
+  uploadFile: async (ucId: string, file: File): Promise<SourceMaterial> => {
     const form = new FormData();
     form.append("file", file);
     const res = await fetch(`/api/v1/use-cases/${ucId}/raw-inputs`, {
@@ -38,84 +38,84 @@ export const discoveryApi = {
     }
     const envelope = await res.json();
     if (envelope.error) throw new Error(envelope.error);
-    return envelope.data as RawInput;
+    return envelope.data as SourceMaterial;
   },
 
-  // ─── Lived JTDs ──────────────────────────────────────────────────────────
-  createLivedJTD: (ucId: string, payload: LivedJTDCreate) =>
-    client.post<LivedJTD, LivedJTDCreate>(
-      `${BASE(ucId)}/lived-jtds`,
+  // ─── Activities ──────────────────────────────────────────────────────────
+  createActivity: (ucId: string, payload: ActivityCreate) =>
+    client.post<Activity, ActivityCreate>(
+      `${BASE(ucId)}/activities`,
       payload
     ),
 
-  updateLivedJTD: (ucId: string, jtdId: string, payload: LivedJTDUpdate) =>
-    client.patch<LivedJTD, LivedJTDUpdate>(
-      `${BASE(ucId)}/lived-jtds/${jtdId}`,
+  updateActivity: (ucId: string, activityId: string, payload: ActivityUpdate) =>
+    client.patch<Activity, ActivityUpdate>(
+      `${BASE(ucId)}/activities/${activityId}`,
       payload
     ),
 
-  deleteLivedJTD: (ucId: string, jtdId: string) =>
-    client.del(`${BASE(ucId)}/lived-jtds/${jtdId}`),
+  deleteActivity: (ucId: string, activityId: string) =>
+    client.del(`${BASE(ucId)}/activities/${activityId}`),
 
-  // ─── Cognitive JTDs ──────────────────────────────────────────────────────
-  createCognitiveJTD: (ucId: string, payload: CognitiveJTDCreate) =>
-    client.post<CognitiveJTD, CognitiveJTDCreate>(
-      `${BASE(ucId)}/cognitive-jtds`,
+  // ─── Cognitive Load Items ────────────────────────────────────────────────
+  createCognitiveLoad: (ucId: string, payload: CognitiveLoadCreate) =>
+    client.post<CognitiveLoad, CognitiveLoadCreate>(
+      `${BASE(ucId)}/cognitive-load`,
       payload
     ),
 
-  updateCognitiveJTD: (
+  updateCognitiveLoad: (
     ucId: string,
-    jtdId: string,
-    payload: CognitiveJTDUpdate
+    itemId: string,
+    payload: CognitiveLoadUpdate
   ) =>
-    client.patch<CognitiveJTD, CognitiveJTDUpdate>(
-      `${BASE(ucId)}/cognitive-jtds/${jtdId}`,
+    client.patch<CognitiveLoad, CognitiveLoadUpdate>(
+      `${BASE(ucId)}/cognitive-load/${itemId}`,
       payload
     ),
 
-  deleteCognitiveJTD: (ucId: string, jtdId: string) =>
-    client.del(`${BASE(ucId)}/cognitive-jtds/${jtdId}`),
+  deleteCognitiveLoad: (ucId: string, itemId: string) =>
+    client.del(`${BASE(ucId)}/cognitive-load/${itemId}`),
 
-  // ─── Delegation Clusters ──────────────────────────────────────────────────
-  updateCluster: (
+  // ─── Agent Scopes (Delegation Clusters) ──────────────────────────────────
+  updateScope: (
     ucId: string,
-    clusterId: string,
-    payload: DelegationClusterUpdate
+    scopeId: string,
+    payload: AgentScopeUpdate
   ) =>
-    client.patch<DelegationCluster, DelegationClusterUpdate>(
-      `${BASE(ucId)}/clusters/${clusterId}`,
+    client.patch<AgentScope, AgentScopeUpdate>(
+      `${BASE(ucId)}/clusters/${scopeId}`,
       payload
     ),
 
-  deleteCluster: (ucId: string, clusterId: string) =>
-    client.del(`${BASE(ucId)}/clusters/${clusterId}`),
+  deleteScope: (ucId: string, scopeId: string) =>
+    client.del(`${BASE(ucId)}/clusters/${scopeId}`),
 
-  scoreCluster: (ucId: string, clusterId: string) =>
-    client.post<DelegationCluster, Record<string, never>>(
-      `${BASE(ucId)}/clusters/${clusterId}/score`,
+  scoreScope: (ucId: string, scopeId: string) =>
+    client.post<AgentScope, Record<string, never>>(
+      `${BASE(ucId)}/clusters/${scopeId}/score`,
       {}
     ),
 
-  // ─── Cluster Membership Editing ─────────────────────────────────────────────
-  addClusterLivedJTD: (ucId: string, clusterId: string, jtdId: string) =>
-    client.put<DelegationCluster>(
-      `${BASE(ucId)}/clusters/${clusterId}/lived-jtds/${jtdId}`
+  // ─── Scope Membership Editing ──────────────────────────────────────────────
+  addScopeActivity: (ucId: string, scopeId: string, activityId: string) =>
+    client.put<AgentScope>(
+      `${BASE(ucId)}/clusters/${scopeId}/activities/${activityId}`
     ),
 
-  removeClusterLivedJTD: (ucId: string, clusterId: string, jtdId: string) =>
-    client.del<DelegationCluster>(
-      `${BASE(ucId)}/clusters/${clusterId}/lived-jtds/${jtdId}`
+  removeScopeActivity: (ucId: string, scopeId: string, activityId: string) =>
+    client.del<AgentScope>(
+      `${BASE(ucId)}/clusters/${scopeId}/activities/${activityId}`
     ),
 
-  addClusterCognitiveJTD: (ucId: string, clusterId: string, jtdId: string) =>
-    client.put<DelegationCluster>(
-      `${BASE(ucId)}/clusters/${clusterId}/cognitive-jtds/${jtdId}`
+  addScopeCognitiveLoad: (ucId: string, scopeId: string, itemId: string) =>
+    client.put<AgentScope>(
+      `${BASE(ucId)}/clusters/${scopeId}/cognitive-load/${itemId}`
     ),
 
-  removeClusterCognitiveJTD: (ucId: string, clusterId: string, jtdId: string) =>
-    client.del<DelegationCluster>(
-      `${BASE(ucId)}/clusters/${clusterId}/cognitive-jtds/${jtdId}`
+  removeScopeCognitiveLoad: (ucId: string, scopeId: string, itemId: string) =>
+    client.del<AgentScope>(
+      `${BASE(ucId)}/clusters/${scopeId}/cognitive-load/${itemId}`
     ),
 
   // ─── System Messages ───────────────────────────────────────────────────────
@@ -129,14 +129,14 @@ export const discoveryApi = {
   getProcessFlow: (ucId: string) =>
     client.get<ProcessFlow>(`${BASE(ucId)}/process-flow`),
 
-  createStep: (ucId: string, payload: ProcessStepCreate) =>
-    client.post<ProcessStep, ProcessStepCreate>(
+  createStep: (ucId: string, payload: PhaseCreate) =>
+    client.post<Phase, PhaseCreate>(
       `${BASE(ucId)}/process-flow/steps`,
       payload
     ),
 
-  updateStep: (ucId: string, stepId: string, payload: ProcessStepUpdate) =>
-    client.patch<ProcessStep, ProcessStepUpdate>(
+  updateStep: (ucId: string, stepId: string, payload: PhaseUpdate) =>
+    client.patch<Phase, PhaseUpdate>(
       `${BASE(ucId)}/process-flow/steps/${stepId}`,
       payload
     ),
@@ -144,15 +144,15 @@ export const discoveryApi = {
   deleteStep: (ucId: string, stepId: string) =>
     client.del(`${BASE(ucId)}/process-flow/steps/${stepId}`),
 
-  assignStepToCluster: (ucId: string, clusterId: string, stepId: string) =>
-    client.post<ClusterProcessStep, Record<string, never>>(
-      `${BASE(ucId)}/process-flow/clusters/${clusterId}/steps/${stepId}`,
+  assignStepToScope: (ucId: string, scopeId: string, stepId: string) =>
+    client.post<ScopePhaseLink, Record<string, never>>(
+      `${BASE(ucId)}/process-flow/clusters/${scopeId}/steps/${stepId}`,
       {}
     ),
 
-  removeStepFromCluster: (ucId: string, clusterId: string, stepId: string) =>
+  removeStepFromScope: (ucId: string, scopeId: string, stepId: string) =>
     client.del(
-      `${BASE(ucId)}/process-flow/clusters/${clusterId}/steps/${stepId}`
+      `${BASE(ucId)}/process-flow/clusters/${scopeId}/steps/${stepId}`
     ),
 };
 

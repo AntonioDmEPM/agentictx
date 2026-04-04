@@ -4,23 +4,23 @@
  * Three-layer horizontal swimlane:
  *   Layer 3 (top)    — cluster bands spanning assigned steps
  *   Layer 1 (middle) — process step nodes connected left-to-right
- *   Layer 2 (bottom) — lived (amber) and cognitive (blue) JTD pills below each step
+ *   Layer 2 (bottom) — lived (amber) and cognitive (blue) Activity pills below each step
  */
 import { useCallback, useRef, useState } from "react";
 import { discoveryApi } from "@/api/discovery";
 import { useDiscoveryStore } from "@/store/discoveryStore";
 import type {
-  DelegationCluster,
-  LivedJTD,
-  CognitiveJTD,
-  ProcessStep,
+  Activity,
+  AgentScope,
+  CognitiveLoad,
+  Phase,
 } from "@/types/discovery";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const CLUSTER_COLOURS = [
-  "var(--jtd-cluster)",
-  "var(--jtd-agent)",
+  "var(--color-scope)",
+  "var(--color-agent)",
   "var(--accent-warm)",
   "var(--accent-primary)",
 ];
@@ -78,7 +78,7 @@ function RenameInput({
   );
 }
 
-// ─── JTD Pill ─────────────────────────────────────────────────────────────────
+// ─── Activity Pill ────────────────────────────────────────────────────────────
 
 function JTDPill({
   label,
@@ -90,7 +90,7 @@ function JTDPill({
   onRemove: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const colour = type === "lived" ? "var(--jtd-lived)" : "var(--jtd-cognitive)";
+  const colour = type === "lived" ? "var(--color-activity)" : "var(--color-cognitive)";
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -145,26 +145,26 @@ function JTDPill({
   );
 }
 
-// ─── JTD Picker ───────────────────────────────────────────────────────────────
+// ─── Activity Picker ──────────────────────────────────────────────────────────
 
 function JTDPicker({
-  livedJTDs,
-  cognitiveJTDs,
+  activities,
+  cognitiveLoadItems,
   linkedIds,
   onPick,
   onClose,
 }: {
-  livedJTDs: LivedJTD[];
-  cognitiveJTDs: CognitiveJTD[];
+  activities: Activity[];
+  cognitiveLoadItems: CognitiveLoad[];
   linkedIds: Set<string>;
   onPick: (type: "lived" | "cognitive", jtdId: string) => void;
   onClose: () => void;
 }) {
   const available = [
-    ...livedJTDs
+    ...activities
       .filter((j) => !linkedIds.has(j.id))
       .map((j) => ({ type: "lived" as const, id: j.id, desc: j.description })),
-    ...cognitiveJTDs
+    ...cognitiveLoadItems
       .filter((j) => !linkedIds.has(j.id))
       .map((j) => ({ type: "cognitive" as const, id: j.id, desc: j.description })),
   ];
@@ -203,7 +203,7 @@ function JTDPicker({
             letterSpacing: "0.08em",
           }}
         >
-          Link JTD
+          Link Activity
         </span>
         <button
           onClick={onClose}
@@ -229,12 +229,12 @@ function JTDPicker({
             margin: 0,
           }}
         >
-          All JTDs linked
+          All linked
         </p>
       )}
       {available.map((item) => {
         const colour =
-          item.type === "lived" ? "var(--jtd-lived)" : "var(--jtd-cognitive)";
+          item.type === "lived" ? "var(--color-activity)" : "var(--color-cognitive)";
         return (
           <button
             key={item.id}
@@ -294,8 +294,8 @@ interface LinkedJTD {
 function StepNode({
   step,
   linkedJTDs,
-  livedJTDs,
-  cognitiveJTDs,
+  activities,
+  cognitiveLoadItems,
   isLast,
   useCaseId,
   onUpdated,
@@ -303,13 +303,13 @@ function StepNode({
   onJTDLinked,
   onJTDUnlinked,
 }: {
-  step: ProcessStep;
+  step: Phase;
   linkedJTDs: LinkedJTD[];
-  livedJTDs: LivedJTD[];
-  cognitiveJTDs: CognitiveJTD[];
+  activities: Activity[];
+  cognitiveLoadItems: CognitiveLoad[];
   isLast: boolean;
   useCaseId: string;
-  onUpdated: (s: ProcessStep) => void;
+  onUpdated: (s: Phase) => void;
   onDeleted: (id: string) => void;
   onJTDLinked: (type: "lived" | "cognitive", jtdId: string) => void;
   onJTDUnlinked: (type: "lived" | "cognitive", jtdId: string) => void;
@@ -346,9 +346,9 @@ function StepNode({
   const handleLinkPick = useCallback(
     async (type: "lived" | "cognitive", jtdId: string) => {
       if (type === "lived") {
-        await discoveryApi.updateLivedJTD(useCaseId, jtdId, { process_phase_id: step.id });
+        await discoveryApi.updateActivity(useCaseId, jtdId, { process_phase_id: step.id });
       } else {
-        await discoveryApi.updateCognitiveJTD(useCaseId, jtdId, { process_phase_id: step.id });
+        await discoveryApi.updateCognitiveLoad(useCaseId, jtdId, { process_phase_id: step.id });
       }
       onJTDLinked(type, jtdId);
     },
@@ -358,9 +358,9 @@ function StepNode({
   const handleUnlink = useCallback(
     async (type: "lived" | "cognitive", jtdId: string) => {
       if (type === "lived") {
-        await discoveryApi.updateLivedJTD(useCaseId, jtdId, { process_phase_id: null });
+        await discoveryApi.updateActivity(useCaseId, jtdId, { process_phase_id: null });
       } else {
-        await discoveryApi.updateCognitiveJTD(useCaseId, jtdId, { process_phase_id: null });
+        await discoveryApi.updateCognitiveLoad(useCaseId, jtdId, { process_phase_id: null });
       }
       onJTDUnlinked(type, jtdId);
     },
@@ -490,7 +490,7 @@ function StepNode({
           )}
         </div>
 
-        {/* JTD pills layer (Layer 2) */}
+        {/* Activity pills layer (Layer 2) */}
         <div
           style={{
             marginTop: 6,
@@ -528,8 +528,8 @@ function StepNode({
             </button>
             {pickerOpen && (
               <JTDPicker
-                livedJTDs={livedJTDs}
-                cognitiveJTDs={cognitiveJTDs}
+                activities={activities}
+                cognitiveLoadItems={cognitiveLoadItems}
                 linkedIds={linkedIds}
                 onPick={handleLinkPick}
                 onClose={() => setPickerOpen(false)}
@@ -608,17 +608,17 @@ function InsertBtn({ onClick }: { onClick: () => void }) {
 
 // ─── Cluster band (Layer 3) ───────────────────────────────────────────────────
 
-function ClusterBand({
-  cluster,
+function ScopeBand({
+  scope,
   assignedStepIds,
   steps,
   colour,
   isAssignMode,
   onToggleStep,
 }: {
-  cluster: DelegationCluster;
+  scope: AgentScope;
   assignedStepIds: Set<string>;
-  steps: ProcessStep[];
+  steps: Phase[];
   colour: string;
   isAssignMode: boolean;
   onToggleStep: (stepId: string) => void;
@@ -646,9 +646,9 @@ function ClusterBand({
           overflow: "hidden",
           textOverflow: "ellipsis",
         }}
-        title={cluster.name}
+        title={scope.name}
       >
-        {cluster.name}
+        {scope.name}
       </span>
 
       {steps.map((step) => {
@@ -710,9 +710,9 @@ export function ProcessVisualisationPanel({
   const {
     processFlow,
     setProcessFlow,
-    livedJTDs,
-    cognitiveJTDs,
-    delegationClusters,
+    activities,
+    cognitiveLoadItems,
+    agentScopes,
   } = useDiscoveryStore();
 
   const [assignModeClusterId, setAssignModeClusterId] = useState<string | null>(
@@ -727,12 +727,12 @@ export function ProcessVisualisationPanel({
 
   const jtdsForStep = (stepId: string): LinkedJTD[] => {
     const result: LinkedJTD[] = [];
-    for (const j of livedJTDs) {
+    for (const j of activities) {
       if (j.process_phase_id === stepId) {
         result.push({ id: j.id, type: "lived", description: j.description });
       }
     }
-    for (const j of cognitiveJTDs) {
+    for (const j of cognitiveLoadItems) {
       if (j.process_phase_id === stepId) {
         result.push({ id: j.id, type: "cognitive", description: j.description });
       }
@@ -753,7 +753,7 @@ export function ProcessVisualisationPanel({
   // ── Step mutations ────────────────────────────────────────────────────────
 
   const handleStepUpdated = useCallback(
-    (updated: ProcessStep) => {
+    (updated: Phase) => {
       if (!processFlow) return;
       setProcessFlow({
         ...processFlow,
@@ -779,34 +779,34 @@ export function ProcessVisualisationPanel({
     [processFlow, setProcessFlow]
   );
 
-  const { updateLivedJTD: storeUpdateLivedJTD, updateCognitiveJTD: storeUpdateCognitiveJTD } = useDiscoveryStore();
+  const { updateActivity: storeUpdateActivity, updateCognitiveLoad: storeUpdateCognitiveLoad } = useDiscoveryStore();
 
   const handleJTDLinked = useCallback(
     (type: "lived" | "cognitive", jtdId: string) => {
-      // Store already has the JTD — we need to re-fetch to update process_phase_id
+      // Store already has the item — we need to update process_phase_id
       // The API call was already made in the StepNode; just refresh the store entry
       if (type === "lived") {
-        const jtd = livedJTDs.find((j) => j.id === jtdId);
-        if (jtd) storeUpdateLivedJTD({ ...jtd, process_phase_id: jtdId });
+        const item = activities.find((j) => j.id === jtdId);
+        if (item) storeUpdateActivity({ ...item, process_phase_id: jtdId });
       } else {
-        const jtd = cognitiveJTDs.find((j) => j.id === jtdId);
-        if (jtd) storeUpdateCognitiveJTD({ ...jtd, process_phase_id: jtdId });
+        const item = cognitiveLoadItems.find((j) => j.id === jtdId);
+        if (item) storeUpdateCognitiveLoad({ ...item, process_phase_id: jtdId });
       }
     },
-    [livedJTDs, cognitiveJTDs, storeUpdateLivedJTD, storeUpdateCognitiveJTD]
+    [activities, cognitiveLoadItems, storeUpdateActivity, storeUpdateCognitiveLoad]
   );
 
   const handleJTDUnlinked = useCallback(
     (type: "lived" | "cognitive", jtdId: string) => {
       if (type === "lived") {
-        const jtd = livedJTDs.find((j) => j.id === jtdId);
-        if (jtd) storeUpdateLivedJTD({ ...jtd, process_phase_id: null });
+        const item = activities.find((j) => j.id === jtdId);
+        if (item) storeUpdateActivity({ ...item, process_phase_id: null });
       } else {
-        const jtd = cognitiveJTDs.find((j) => j.id === jtdId);
-        if (jtd) storeUpdateCognitiveJTD({ ...jtd, process_phase_id: null });
+        const item = cognitiveLoadItems.find((j) => j.id === jtdId);
+        if (item) storeUpdateCognitiveLoad({ ...item, process_phase_id: null });
       }
     },
-    [livedJTDs, cognitiveJTDs, storeUpdateLivedJTD, storeUpdateCognitiveJTD]
+    [activities, cognitiveLoadItems, storeUpdateActivity, storeUpdateCognitiveLoad]
   );
 
   // ── Add step ──────────────────────────────────────────────────────────────
@@ -871,7 +871,7 @@ export function ProcessVisualisationPanel({
     const newClusterSteps = [...processFlow.cluster_steps];
 
     for (const stepId of toAdd) {
-      const cs = await discoveryApi.assignStepToCluster(
+      const cs = await discoveryApi.assignStepToScope(
         useCaseId,
         assignModeClusterId,
         stepId
@@ -879,7 +879,7 @@ export function ProcessVisualisationPanel({
       newClusterSteps.push(cs);
     }
     for (const stepId of toRemove) {
-      await discoveryApi.removeStepFromCluster(
+      await discoveryApi.removeStepFromScope(
         useCaseId,
         assignModeClusterId,
         stepId
@@ -991,8 +991,8 @@ export function ProcessVisualisationPanel({
             >
               Assigning:{" "}
               <strong>
-                {delegationClusters.find((c) => c.id === assignModeClusterId)
-                  ?.name ?? "Cluster"}
+                {agentScopes.find((c) => c.id === assignModeClusterId)
+                  ?.name ?? "Scope"}
               </strong>
             </span>
             <button
@@ -1033,7 +1033,7 @@ export function ProcessVisualisationPanel({
       {/* Canvas */}
       <div style={{ flex: 1, overflow: "auto", padding: 24 }}>
         {/* Layer 3 — cluster bands */}
-        {delegationClusters.length > 0 && (
+        {agentScopes.length > 0 && (
           <div style={{ marginBottom: 16 }}>
             <div
               style={{
@@ -1045,31 +1045,31 @@ export function ProcessVisualisationPanel({
                 marginBottom: 8,
               }}
             >
-              Cluster Assignments
+              Scope Assignments
             </div>
-            {delegationClusters.map((cluster, idx) => {
+            {agentScopes.map((scope, idx) => {
               const colour = getClusterColour(idx);
               const assigned =
-                assignModeClusterId === cluster.id && currentAssignSet
+                assignModeClusterId === scope.id && currentAssignSet
                   ? currentAssignSet
-                  : assignedStepIdsForCluster(cluster.id);
+                  : assignedStepIdsForCluster(scope.id);
 
               return (
                 <div
-                  key={cluster.id}
+                  key={scope.id}
                   style={{ display: "flex", alignItems: "center", gap: 8 }}
                 >
-                  <ClusterBand
-                    cluster={cluster}
+                  <ScopeBand
+                    scope={scope}
                     assignedStepIds={assigned}
                     steps={steps}
                     colour={colour}
-                    isAssignMode={assignModeClusterId === cluster.id}
+                    isAssignMode={assignModeClusterId === scope.id}
                     onToggleStep={toggleStepInPending}
                   />
-                  {assignModeClusterId !== cluster.id && (
+                  {assignModeClusterId !== scope.id && (
                     <button
-                      onClick={() => enterAssignMode(cluster.id)}
+                      onClick={() => enterAssignMode(scope.id)}
                       style={{
                         background: "none",
                         border: "1px solid var(--bg-border)",
@@ -1116,8 +1116,8 @@ export function ProcessVisualisationPanel({
               <StepNode
                 step={step}
                 linkedJTDs={jtdsForStep(step.id)}
-                livedJTDs={livedJTDs}
-                cognitiveJTDs={cognitiveJTDs}
+                activities={activities}
+                cognitiveLoadItems={cognitiveLoadItems}
                 isLast={idx === steps.length - 1}
                 useCaseId={useCaseId}
                 onUpdated={handleStepUpdated}

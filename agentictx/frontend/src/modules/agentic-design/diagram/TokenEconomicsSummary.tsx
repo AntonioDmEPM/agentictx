@@ -68,7 +68,7 @@ export function TokenEconomicsSummary({ spec }: TokenEconomicsSummaryProps) {
         zIndex: 10,
         background: "var(--bg-elevated)",
         border: "1px solid var(--bg-border)",
-        borderTop: "2px solid var(--jtd-cognitive)",
+        borderTop: "2px solid var(--color-cognitive)",
         borderRadius: 8,
         padding: "12px 14px",
         display: "flex",

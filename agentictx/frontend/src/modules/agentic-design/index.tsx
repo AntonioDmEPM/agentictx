@@ -113,7 +113,7 @@ function MessageBubble({ msg }: { msg: ChatMsg }) {
       {!isUser && (
         <div
           className="w-5 h-5 rounded-sm flex items-center justify-center text-xs font-ui mr-2 mt-0.5 shrink-0"
-          style={{ background: "var(--jtd-agent)", color: "white" }}
+          style={{ background: "var(--color-agent)", color: "white" }}
         >
           D
         </div>
@@ -303,7 +303,7 @@ export function AgenticDesignModule() {
     );
   }
 
-  const clusters = discoveryMap?.delegation_clusters ?? [];
+  const agentScopes = discoveryMap?.delegation_clusters ?? [];
   const diagramSpec = diagramSpecId
     ? agentSpecs.find((s) => s.id === diagramSpecId) ?? null
     : null;
@@ -354,7 +354,7 @@ export function AgenticDesignModule() {
           ) : (
             <SpecPanel
               useCaseId={useCaseId}
-              clusters={clusters}
+              clusters={agentScopes}
               onViewDiagram={handleViewDiagram}
               onCollapse={() => setRightOpen(false)}
             />

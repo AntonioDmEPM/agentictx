@@ -128,10 +128,10 @@ export function AgentNode({ data }: { data: AgentNodeData }) {
 
   return (
     <>
-      <Handle type="target" position={Position.Left}   id="left-in"   style={{ background: "var(--jtd-agent)" }} />
-      <Handle type="target" position={Position.Top}    id="top-in"    style={{ background: "var(--jtd-agent)" }} />
-      <Handle type="source" position={Position.Right}  id="right-out" style={{ background: "var(--jtd-agent)" }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-out" style={{ background: "var(--jtd-agent)" }} />
+      <Handle type="target" position={Position.Left}   id="left-in"   style={{ background: "var(--color-agent)" }} />
+      <Handle type="target" position={Position.Top}    id="top-in"    style={{ background: "var(--color-agent)" }} />
+      <Handle type="source" position={Position.Right}  id="right-out" style={{ background: "var(--color-agent)" }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-out" style={{ background: "var(--color-agent)" }} />
 
       <div
         onMouseEnter={() => setHovered(true)}
@@ -140,7 +140,7 @@ export function AgentNode({ data }: { data: AgentNodeData }) {
           width: 280,
           minHeight: 140,
           borderRadius: 8,
-          border: "2px solid var(--jtd-agent)",
+          border: "2px solid var(--color-agent)",
           background: "var(--bg-elevated)",
           padding: "14px 16px",
           display: "flex",
